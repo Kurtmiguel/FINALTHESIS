@@ -1,10 +1,22 @@
-import { RegisterForm } from '@/components/RegisterForm';
+import React from 'react'
+import { useForm, FormProvider } from 'react-hook-form'
+import { RegisterForm} from '@/components/RegistrationForm'
+import { Header } from '@/components/Header'
 
-export default function RegisterPage() {
+const UserRegister: React.FC = () => {
+  const methods = useForm()
+
   return (
-    <div className="container mx-auto mt-8">
-      <h1 className="text-2xl font-bold mb-4">User Registration</h1>
-      <RegisterForm />
+    <div>
+      <Header />
+      <main className="p-4">
+        <h2 className="text-xl font-bold mb-4">User Registration</h2>
+        <FormProvider {...methods}>
+          <RegisterForm />
+        </FormProvider>
+      </main>
     </div>
-  );
+  )
 }
+
+export default UserRegister
