@@ -1,16 +1,26 @@
-// src/app/admin/dashboard/page.tsx
+"use client"
+import { useState } from 'react'
+import Head from 'next/head'
+import Image from 'next/image'
+import Link from 'next/link'
+import Sidebar from '@/components/Sidebar'
+import PostForm from '@/components/PostForm'
+import RecordMonitoring from '@/components/RecordMonitoring'
 
-import Link from 'next/link';
-import Image from 'next/image';
+export default function AdminDashboard() {
+  const [activeTab, setActiveTab] = useState('home')
 
-const AdminDashboard = () => {
   return (
-    <div>
+    <div className="min-h-screen bg-gray-100">
+      <Head>
+        <title>Admin Dashboard - Barangay Canine Management System</title>
+      </Head>
+
       <header className="bg-blue-950 text-white p-4">
         <div className="container mx-auto flex justify-between items-center">
           <Link href="/" className="flex items-center">
             <Image
-              src="/brgylogo.png"
+              src="/brgylogo.png"  
               alt="Logo"
               width={40}
               height={40}
@@ -19,31 +29,19 @@ const AdminDashboard = () => {
             />
             <span className="text-2xl font-bold">Barangay Canine Management System</span>
           </Link>
-          <nav>
-            {/* Add nav links here */}
-          </nav>
         </div>
       </header>
+
       <div className="flex">
-        <aside className="w-1/4 p-4">
-          <h2 className="text-xl font-bold">Admin Navigation</h2>
-          <nav>
-            <ul>
-              <li><a href="/admin/dashboard">Home</a></li>
-              <li><a href="/admin/records">Records</a></li>
-              <li><a href="/admin/monitoring">Monitoring</a></li>
-              <li><a href="/admin/account">Account Settings</a></li>
-              <li><a href="/logout">Logout</a></li>
-            </ul>
-          </nav>
-        </aside>
-        <main className="w-3/4 p-4">
-          <h2 className="text-xl font-bold">Dashboard</h2>
-          {/* Dashboard content */}
+        <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+        <main className="flex-1 p-6">
+          {activeTab === 'home' && <PostForm />}
+          {activeTab === 'record' && <RecordMonitoring />}
         </main>
       </div>
+      <footer className="bg-blue-950 text-white p-4 text-center">
+        <p>&copy; {new Date().getFullYear()} Barangay Canine Management System</p>
+      </footer>
     </div>
-  );
-};
-
-export default AdminDashboard;
+  )
+}
