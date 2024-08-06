@@ -10,13 +10,12 @@ export const userSchema = z.object({
   password: z.string().min(8, 'Password must be at least 8 characters'),
 });
 
-export const adminSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-  specialCode: z.string().min(6, 'Special code must be at least 6 characters'),
-});
-
 export const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(8, 'Password must be at least 8 characters'),
+  isAdmin: z.boolean().default(false),
+});
+
+export const adminSchema = loginSchema.extend({
+  adminCode: z.string().min(6, 'Admin code must be at least 6 characters'),
 });

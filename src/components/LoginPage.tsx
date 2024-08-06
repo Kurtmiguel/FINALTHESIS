@@ -1,9 +1,9 @@
 "use client";
 
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { userSchema } from '@/lib/schemas';
+import { loginSchema } from '@/lib/schemas';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
@@ -15,19 +15,35 @@ import {
 } from "@/components/ui/form";
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 
 export const LoginPageComponent = () => {
+  const [isAdmin, setIsAdmin] = useState(false);
+  const router = useRouter();
   const methods = useForm({
-    resolver: zodResolver(userSchema.pick({ email: true, password: true })),  // Adjust schema for login
+    resolver: zodResolver(loginSchema),
     defaultValues: {
       email: '',
       password: '',
+      isAdmin: false,
     },
   });
 
-  const onSubmit = (data: any) => {
+  const onSubmit = async (data: any) => {
     console.log(data);
-    // Handle form submission
+    if (data.email === 'kurtmiguel17@gmail.com' && data.password === '123456') {
+      if (data.isAdmin) {
+        // Redirect to admin dashboard
+        router.push('/admin-dashboard');
+      } else {
+        // Redirect to user dashboard
+        router.push('/dashboard');
+      }
+    } else {
+      // Handle invalid credentials
+      console.error('Invalid credentials');
+      // You might want to set an error state and display it to the user
+    }
   };
 
   return (
@@ -45,6 +61,10 @@ export const LoginPageComponent = () => {
             />
             <span className="text-2xl font-bold">Barangay Canine Management System</span>
           </Link>
+          <nav>
+            <Link href="/login" className="mr-4">Login</Link>
+            <Link href="/register">Register</Link>
+          </nav>
         </div>
       </header>
 
@@ -85,6 +105,25 @@ export const LoginPageComponent = () => {
                       />
                     </FormControl>
                     <FormMessage>{methods.formState.errors.password?.message}</FormMessage>
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                name="isAdmin"
+                render={({ field }) => (
+                  <FormItem className="flex items-center space-x-2">
+                    <FormControl>
+                      <input
+                        type="checkbox"
+                        checked={isAdmin}
+                        onChange={(e) => {
+                          setIsAdmin(e.target.checked);
+                          field.onChange(e.target.checked);
+                        }}
+                      />
+                    </FormControl>
+                    <FormLabel className="text-lg">Login as Admin</FormLabel>
                   </FormItem>
                 )}
               />
