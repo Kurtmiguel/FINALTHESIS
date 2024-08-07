@@ -23,7 +23,7 @@ export default function PostForm() {
   };
 
   return (
-    <Card className="w-full max-w-2xl mx-auto">
+    <Card className="bg-white p-6 rounded-lg shadow">
       <CardHeader>
         <CardTitle>Create a Post</CardTitle>
       </CardHeader>
