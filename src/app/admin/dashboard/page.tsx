@@ -3,7 +3,7 @@ import { useState } from 'react'
 import Head from 'next/head'
 import Image from 'next/image'
 import Link from 'next/link'
-import Sidebar from '@/components/Sidebar'
+import Sidebar from '@/components/AdminSidebar'
 import PostForm from '@/components/PostForm'
 import RecordMonitoring from '@/components/RecordMonitoring'
 
