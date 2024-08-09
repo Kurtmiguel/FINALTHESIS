@@ -1,11 +1,11 @@
 "use client"
-import { Button } from "@/components/ui/button";
+
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Link from 'next/link';
 import Image from "next/image";
 import { useState } from "react";
 import Sidebar from '@/components/UserSidebar';
-import PostList from '@/components/PostList';
+import PostList from '@/components/PostList'
 
 export default function UserDashboard() {
   const [activeTab, setActiveTab] = useState('home');
@@ -32,7 +32,7 @@ export default function UserDashboard() {
         <main className="flex-1 p-8 bg-gray-200">
           <div className="bg-white p-6 rounded-lg shadow">
             <h2 className="text-2xl font-bold mb-4">Welcome to System</h2>
-            <PostList />
+            <PostList isAdmin={false} />
           </div>
         </main>
         <aside className="w-64 bg-white p-4 flex flex-col items-center">
