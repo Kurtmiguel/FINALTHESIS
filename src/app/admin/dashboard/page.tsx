@@ -6,6 +6,7 @@ import Link from 'next/link'
 import Sidebar from '@/components/AdminSidebar'
 import PostForm from '@/components/PostForm'
 import RecordMonitoring from '@/components/RecordMonitoring'
+import PostList from '@/components/PostList'
 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('home')
@@ -24,6 +25,7 @@ export default function AdminDashboard() {
       console.error('Error creating post:', error);
     }
   }
+
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -45,7 +47,15 @@ export default function AdminDashboard() {
       <div className="flex">
         <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
         <main className="flex-1 p-6">
-          {activeTab === 'home' && <PostForm onSubmit={handlePostSubmit} />}
+          {activeTab === 'home' && (
+            <>
+              <PostForm onSubmit={handlePostSubmit} />
+              <div className="mt-8">
+                <h2 className="text-2xl font-bold mb-4">Manage Posts</h2>
+                <PostList isAdmin={true} />
+              </div>
+            </>
+          )}
           {activeTab === 'record' && <RecordMonitoring />}
         </main>
       </div>
