@@ -22,7 +22,7 @@ export const RegisterForm = () => {
     defaultValues: {
       fullName: '',
       age: undefined,
-      birthdate: undefined,
+      birthdate: '',
       address: '',
       contactNumber: '',
       email: '',
@@ -30,9 +30,35 @@ export const RegisterForm = () => {
     },
   });
 
-  const onSubmit = (data: any) => {
-    console.log(data);
-    // Handle form submission
+  const onSubmit = async (data: any) => {
+    // Convert birthdate string to Date object
+    const parsedData = {
+      ...data,
+      birthdate: new Date(data.birthdate),
+    };
+  
+    try {
+      const response = await fetch('/api/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(parsedData),
+      });
+  
+      if (response.ok) {
+        const result = await response.json();
+        console.log('User registered:', result);
+        // Redirect to login page or show success message
+      } else {
+        const error = await response.json();
+        console.error('Registration error:', error);
+        // Show error message to the user
+      }
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      // Show error message to the user
+    }
   };
 
   return (
@@ -56,8 +82,8 @@ export const RegisterForm = () => {
       <main className="flex-grow p-4">
         <div className="max-w-md mx-auto bg-white p-6 rounded-lg shadow-md">
           <h2 className="text-2xl font-bold mb-4">Registration Form</h2>
-          <form onSubmit={methods.handleSubmit(onSubmit)} className="space-y-4">
-            <FormProvider {...methods}>
+          <FormProvider {...methods}>
+            <form onSubmit={methods.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 name="fullName"
                 render={({ field }) => (
@@ -66,7 +92,7 @@ export const RegisterForm = () => {
                     <FormControl>
                       <Input placeholder="Enter your full name" {...field} />
                     </FormControl>
-                    <FormMessage>{methods.formState.errors.fullName?.message}</FormMessage>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
@@ -81,9 +107,10 @@ export const RegisterForm = () => {
                         type="number"
                         placeholder="Enter your age"
                         {...field}
+                        onChange={(e) => field.onChange(e.target.valueAsNumber)}
                       />
                     </FormControl>
-                    <FormMessage>{methods.formState.errors.age?.message}</FormMessage>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
@@ -97,12 +124,14 @@ export const RegisterForm = () => {
                       <Input
                         type="date"
                         {...field}
+                        onChange={(e) => field.onChange(e.target.value)}
                       />
                     </FormControl>
-                    <FormMessage>{methods.formState.errors.birthdate?.message}</FormMessage>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
+
 
               <FormField
                 name="address"
@@ -112,7 +141,7 @@ export const RegisterForm = () => {
                     <FormControl>
                       <Input placeholder="Enter your address" {...field} />
                     </FormControl>
-                    <FormMessage>{methods.formState.errors.address?.message}</FormMessage>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
@@ -123,9 +152,12 @@ export const RegisterForm = () => {
                   <FormItem>
                     <FormLabel>Contact Number</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter your contact number" {...field} />
+                      <Input
+                        placeholder="Enter your contact number"
+                        {...field}
+                      />
                     </FormControl>
-                    <FormMessage>{methods.formState.errors.contactNumber?.message}</FormMessage>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
@@ -138,7 +170,7 @@ export const RegisterForm = () => {
                     <FormControl>
                       <Input type="email" placeholder="Enter your email" {...field} />
                     </FormControl>
-                    <FormMessage>{methods.formState.errors.email?.message}</FormMessage>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
@@ -151,14 +183,16 @@ export const RegisterForm = () => {
                     <FormControl>
                       <Input type="password" placeholder="Enter your password" {...field} />
                     </FormControl>
-                    <FormMessage>{methods.formState.errors.password?.message}</FormMessage>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
 
-              <Button type="submit" className="w-full bg-blue-500 text-white hover:bg-blue-600">Register</Button>
-            </FormProvider>
-          </form>
+              <Button type="submit" className="w-full bg-blue-500 text-white hover:bg-blue-600">
+                Register
+              </Button>
+            </form>
+          </FormProvider>
         </div>
       </main>
 
