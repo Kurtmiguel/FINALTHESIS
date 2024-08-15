@@ -16,14 +16,13 @@ import {
 import Link from 'next/link';
 import Image from 'next/image';
 import { signIn, useSession } from 'next-auth/react';
-import { useRouter } from 'next/router';
+import { useRouter } from 'next/navigation'; // Corrected import
 
 export const LoginPageComponent = () => {
   const [isAdmin, setIsAdmin] = useState(false);
-  const router = useRouter();
+  const router = useRouter(); // Now using the correct `useRouter` hook
   const { data: session } = useSession();
 
-  // Redirect if already logged in
   useEffect(() => {
     if (session) {
       router.push('/dashboard');
@@ -49,9 +48,7 @@ export const LoginPageComponent = () => {
 
       if (result?.error) {
         console.error('Login error:', result.error);
-        // Optionally, display an error message to the user
       } else {
-        // Redirect based on user role
         if (data.isAdmin) {
           router.push('/admin-dashboard');
         } else {
@@ -60,7 +57,6 @@ export const LoginPageComponent = () => {
       }
     } catch (error) {
       console.error('Error during login:', error);
-      // Optionally, display an error message to the user
     }
   };
 

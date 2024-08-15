@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { userSchema } from '@/lib/schemas';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { hash } from 'bcrypt'
+import bcrypt, { hash } from 'bcryptjs' 
 import { signIn } from 'next-auth/react'
 import {
   FormControl,

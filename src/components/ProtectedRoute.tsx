@@ -24,6 +24,7 @@ export const ProtectedRoute = ({ children, adminOnly = false }: ProtectedRoutePr
     router.push('/dashboard');
     return null;
   }
+  
 
   return <>{children}</>;
 };
