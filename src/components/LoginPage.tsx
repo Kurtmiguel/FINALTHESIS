@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema } from '@/lib/schemas';
@@ -15,11 +15,21 @@ import {
 } from "@/components/ui/form";
 import Link from 'next/link';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { signIn, useSession } from 'next-auth/react';
+import { useRouter } from 'next/router';
 
 export const LoginPageComponent = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const router = useRouter();
+  const { data: session } = useSession();
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (session) {
+      router.push('/dashboard');
+    }
+  }, [session, router]);
+
   const methods = useForm({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -30,19 +40,27 @@ export const LoginPageComponent = () => {
   });
 
   const onSubmit = async (data: any) => {
-    console.log(data);
-    if (data.email === 'kurtmiguel17@gmail.com' && data.password === '123456') {
-      if (data.isAdmin) {
-        // Redirect to admin dashboard
-        router.push('/admin-dashboard');
+    try {
+      const result = await signIn('credentials', {
+        redirect: false,
+        email: data.email,
+        password: data.password,
+      });
+
+      if (result?.error) {
+        console.error('Login error:', result.error);
+        // Optionally, display an error message to the user
       } else {
-        // Redirect to user dashboard
-        router.push('/dashboard');
+        // Redirect based on user role
+        if (data.isAdmin) {
+          router.push('/admin-dashboard');
+        } else {
+          router.push('/dashboard');
+        }
       }
-    } else {
-      // Handle invalid credentials
-      console.error('Invalid credentials');
-      // You might want to set an error state and display it to the user
+    } catch (error) {
+      console.error('Error during login:', error);
+      // Optionally, display an error message to the user
     }
   };
 
@@ -52,7 +70,7 @@ export const LoginPageComponent = () => {
         <div className="container mx-auto flex justify-between items-center">
           <Link href="/" className="flex items-center">
             <Image
-              src="/brgylogo.png"  
+              src="/brgylogo.png"
               alt="Logo"
               width={40}
               height={40}

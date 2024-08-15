@@ -6,6 +6,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { userSchema } from '@/lib/schemas';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { hash } from 'bcrypt'
+import { signIn } from 'next-auth/react'
 import {
   FormControl,
   FormField,
@@ -31,10 +33,11 @@ export const RegisterForm = () => {
   });
 
   const onSubmit = async (data: any) => {
-    // Convert birthdate string to Date object
     const parsedData = {
       ...data,
       birthdate: new Date(data.birthdate),
+      password: await hash(data.password, 10),
+      role: 'user'
     };
   
     try {
@@ -49,7 +52,12 @@ export const RegisterForm = () => {
       if (response.ok) {
         const result = await response.json();
         console.log('User registered:', result);
-        // Redirect to login page or show success message
+        // Sign in the user after successful registration
+        await signIn('credentials', {
+          email: data.email,
+          password: data.password,
+          callbackUrl: '/dashboard'
+        });
       } else {
         const error = await response.json();
         console.error('Registration error:', error);
@@ -60,6 +68,7 @@ export const RegisterForm = () => {
       // Show error message to the user
     }
   };
+
 
   return (
     <div className="min-h-screen flex flex-col">
