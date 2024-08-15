@@ -1,20 +1,21 @@
-import React, { ReactNode } from 'react';
-import type { Metadata } from 'next';
-import './globals.css'
-
-export const metadata: Metadata = {
-  title: 'Your App Name',
-  description: 'Description of your app',
-};
+// app/layout.tsx
+import './globals.css'; // Ensure the correct path to your global CSS file
+import { Providers } from './providers';
 
 export default function RootLayout({
   children,
 }: {
-  children: ReactNode
+  children: React.ReactNode;
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <head>
+        <title>My App</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+      </head>
+      <body>
+        <Providers>{children}</Providers>
+      </body>
     </html>
-  )
+  );
 }

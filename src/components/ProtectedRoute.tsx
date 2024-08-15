@@ -1,30 +1,22 @@
+'use client'
+
 import { useSession } from 'next-auth/react';
-import { useRouter } from 'next/router';
-import { ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
-interface ProtectedRouteProps {
-  children: ReactNode;
-  adminOnly?: boolean;
-}
-
-export const ProtectedRoute = ({ children, adminOnly = false }: ProtectedRouteProps) => {
-  const { data: session, status } = useSession();
+export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { status } = useSession();
   const router = useRouter();
+
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/login');
+    }
+  }, [status, router]);
 
   if (status === 'loading') {
     return <div>Loading...</div>;
   }
 
-  if (!session || !session.user) {
-    router.push('/login');
-    return null;
-  }
-
-  if (adminOnly && session.user.role !== 'admin') {
-    router.push('/dashboard');
-    return null;
-  }
-  
-
-  return <>{children}</>;
-};
+  return status === 'authenticated' ? <>{children}</> : null;
+}

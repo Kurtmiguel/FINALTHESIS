@@ -1,71 +1,82 @@
-// src/pages/api/auth/[...nextauth].ts
-import NextAuth from 'next-auth';
-import { MongoDBAdapter } from '@next-auth/mongodb-adapter';
+import NextAuth, { User as NextAuthUser } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import clientPromise from '../../../lib/mongodb'; // Adjust the path as needed
-import { compare } from 'bcrypt';
+import clientPromise from '@/lib/mongodb';
+import { compare } from 'bcryptjs';
 
-export default NextAuth({
-  adapter: MongoDBAdapter(clientPromise),
+// Extend the User type
+interface User extends NextAuthUser {
+  isAdmin?: boolean;
+}
+
+const handler = NextAuth({
   providers: [
     CredentialsProvider({
       name: 'Credentials',
       credentials: {
-        email: { label: 'Email', type: 'text' },
-        password: { label: 'Password', type: 'password' },
+        email: { label: "Email", type: "text" },
+        password: { label: "Password", type: "password" }
       },
-      async authorize(credentials) {
+      async authorize(credentials): Promise<User | null> {
         if (!credentials?.email || !credentials?.password) {
-          // Returning null if email or password is missing
-          return null;
+          throw new Error('Email and password are required');
         }
 
-        // Fetch user from MongoDB
-        const client = await clientPromise;
-        const usersCollection = client.db().collection('users');
-        const user = await usersCollection.findOne({ email: credentials.email });
+        try {
+          const client = await clientPromise;
+          const db = client.db();
 
-        if (!user) {
-          // User not found
+          const user = await db.collection('users').findOne({ email: credentials.email });
+
+          if (!user) {
+            throw new Error('No user found with this email');
+          }
+
+          const isPasswordValid = await compare(credentials.password, user.password);
+
+          if (!isPasswordValid) {
+            throw new Error('Invalid password');
+          }
+
+          return {
+            id: user._id.toString(),
+            email: user.email,
+            name: user.name,
+            isAdmin: user.isAdmin || false,
+          };
+        } catch (error) {
+          console.error('Error during authentication:', error);
           return null;
         }
-
-        // Check if password matches
-        const isPasswordValid = await compare(credentials.password, user.password);
-
-        if (!isPasswordValid) {
-          // Password is incorrect
-          return null;
-        }
-
-        // Return user object if authentication is successful
-        return {
-          id: user._id.toString(),
-          email: user.email,
-          name: user.fullName,
-          role: user.role || 'user', // Ensure role exists; default to 'user'
-        };
-      },
-    }),
+      }
+    })
   ],
-  session: {
-    strategy: 'jwt',
+  pages: {
+    signIn: '/login',
   },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.role = user.role; // Add role to JWT token
+        token.id = user.id;
+        token.email = user.email;
+        token.name = user.name;
+        token.isAdmin = user.isAdmin;
       }
       return token;
     },
     async session({ session, token }) {
-      if (session?.user) {
-        session.user.role = token.role as string; // Add role to session object
+      if (token && session.user) {
+        session.user.id = token.id as string;
+        session.user.email = token.email as string;
+        session.user.name = token.name as string;
+        session.user.isAdmin = token.isAdmin as boolean;
       }
       return session;
     },
   },
-  pages: {
-    signIn: '/login', // Custom sign-in page
+  session: {
+    strategy: 'jwt',
   },
+  secret: process.env.NEXTAUTH_SECRET,
 });
+
+export { handler as GET, handler as POST };

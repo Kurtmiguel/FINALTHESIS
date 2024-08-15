@@ -16,18 +16,18 @@ import {
 import Link from 'next/link';
 import Image from 'next/image';
 import { signIn, useSession } from 'next-auth/react';
-import { useRouter } from 'next/navigation'; // Corrected import
+import { useRouter } from 'next/navigation';
 
 export const LoginPageComponent = () => {
   const [isAdmin, setIsAdmin] = useState(false);
-  const router = useRouter(); // Now using the correct `useRouter` hook
-  const { data: session } = useSession();
+  const router = useRouter();
+  const { data: session, status } = useSession();
 
   useEffect(() => {
-    if (session) {
+    if (status === 'authenticated') {
       router.push('/dashboard');
     }
-  }, [session, router]);
+  }, [status, router]);
 
   const methods = useForm({
     resolver: zodResolver(loginSchema),
@@ -50,15 +50,19 @@ export const LoginPageComponent = () => {
         console.error('Login error:', result.error);
       } else {
         if (data.isAdmin) {
-          router.push('/admin-dashboard');
+          router.push('/admin/dashboard');
         } else {
-          router.push('/dashboard');
+          router.push('/user/dashboard');
         }
       }
     } catch (error) {
       console.error('Error during login:', error);
     }
   };
+
+  if (status === 'loading') {
+    return <div>Loading...</div>;
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
