@@ -1,13 +1,13 @@
 "use client";
 
 import React from 'react';
+import { useSignUp } from '@clerk/nextjs';
+import { useRouter } from 'next/navigation';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { userSchema } from '@/lib/schemas';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import bcrypt, { hash } from 'bcryptjs' 
-import { signIn } from 'next-auth/react'
 import {
   FormControl,
   FormField,
@@ -17,13 +17,17 @@ import {
 } from "@/components/ui/form";
 import Link from 'next/link';
 import Image from 'next/image';
+import { z } from 'zod'; // Add this import
 
 export const RegisterForm = () => {
-  const methods = useForm({
+  const { signUp, isLoaded } = useSignUp();
+  const router = useRouter();
+
+  const methods = useForm<z.infer<typeof userSchema>>({ // Add type here
     resolver: zodResolver(userSchema),
     defaultValues: {
       fullName: '',
-      age: undefined,
+      age: null, // Change this to null
       birthdate: '',
       address: '',
       contactNumber: '',
@@ -32,46 +36,39 @@ export const RegisterForm = () => {
     },
   });
 
-  const onSubmit = async (data: any) => {
-    const parsedData = {
-      ...data,
-      birthdate: new Date(data.birthdate),
-      password: await hash(data.password, 10),
-      role: 'user'
-    };
+  const onSubmit = async (data: z.infer<typeof userSchema>) => {
+    if (!isLoaded) return;
   
     try {
-      const response = await fetch('/api/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(parsedData),
+      const result = await signUp.create({
+        firstName: data.fullName.split(' ')[0],
+        lastName: data.fullName.split(' ').slice(1).join(' '),
+        emailAddress: data.email,
+        password: data.password,
       });
   
-      if (response.ok) {
-        const result = await response.json();
-        console.log('User registered:', result);
-        // Sign in the user after successful registration
-        await signIn('credentials', {
-          email: data.email,
-          password: data.password,
-          callbackUrl: '/dashboard'
+      if (result.status === 'complete') {
+        await signUp.update({
+          unsafeMetadata: {
+            age: data.age,
+            birthdate: data.birthdate,
+            address: data.address,
+            contactNumber: data.contactNumber,
+          },
         });
+  
+        router.push('/dashboard');
       } else {
-        const error = await response.json();
-        console.error('Registration error:', error);
-        // Show error message to the user
+        console.error('Registration failed');
       }
     } catch (error) {
-      console.error('Error submitting form:', error);
-      // Show error message to the user
+      console.error('Error during registration:', error);
     }
   };
 
-
   return (
     <div className="min-h-screen flex flex-col">
+      {/* Header remains the same */}
       <header className="bg-blue-950 text-white p-4">
         <div className="container mx-auto flex justify-between items-center">
           <Link href="/" className="flex items-center">
@@ -87,13 +84,13 @@ export const RegisterForm = () => {
           </Link>
         </div>
       </header>
-
       <main className="flex-grow p-4">
         <div className="max-w-md mx-auto bg-white p-6 rounded-lg shadow-md">
           <h2 className="text-2xl font-bold mb-4">Registration Form</h2>
           <FormProvider {...methods}>
             <form onSubmit={methods.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
+                control={methods.control}
                 name="fullName"
                 render={({ field }) => (
                   <FormItem>
@@ -105,8 +102,8 @@ export const RegisterForm = () => {
                   </FormItem>
                 )}
               />
-
               <FormField
+                control={methods.control}
                 name="age"
                 render={({ field }) => (
                   <FormItem>
@@ -116,15 +113,19 @@ export const RegisterForm = () => {
                         type="number"
                         placeholder="Enter your age"
                         {...field}
-                        onChange={(e) => field.onChange(e.target.valueAsNumber)}
+                        value={field.value ?? ''}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          field.onChange(value === '' ? null : parseInt(value, 10));
+                        }}
                       />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-
               <FormField
+                control={methods.control}
                 name="birthdate"
                 render={({ field }) => (
                   <FormItem>
@@ -133,16 +134,15 @@ export const RegisterForm = () => {
                       <Input
                         type="date"
                         {...field}
-                        onChange={(e) => field.onChange(e.target.value)}
+                        value={field.value || ''}
                       />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-
-
               <FormField
+                control={methods.control} // Add this line
                 name="address"
                 render={({ field }) => (
                   <FormItem>
@@ -154,8 +154,8 @@ export const RegisterForm = () => {
                   </FormItem>
                 )}
               />
-
               <FormField
+                control={methods.control} // Add this line
                 name="contactNumber"
                 render={({ field }) => (
                   <FormItem>
@@ -170,8 +170,8 @@ export const RegisterForm = () => {
                   </FormItem>
                 )}
               />
-
               <FormField
+                control={methods.control} // Add this line
                 name="email"
                 render={({ field }) => (
                   <FormItem>
@@ -183,8 +183,8 @@ export const RegisterForm = () => {
                   </FormItem>
                 )}
               />
-
               <FormField
+                control={methods.control} // Add this line
                 name="password"
                 render={({ field }) => (
                   <FormItem>
@@ -196,7 +196,6 @@ export const RegisterForm = () => {
                   </FormItem>
                 )}
               />
-
               <Button type="submit" className="w-full bg-blue-500 text-white hover:bg-blue-600">
                 Register
               </Button>
@@ -204,7 +203,7 @@ export const RegisterForm = () => {
           </FormProvider>
         </div>
       </main>
-
+      {/* Footer remains the same */}
       <footer className="bg-blue-950 text-white p-4 text-center">
         <p>&copy; {new Date().getFullYear()} Barangay Canine Management System</p>
       </footer>

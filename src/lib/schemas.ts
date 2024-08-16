@@ -1,20 +1,15 @@
-import { z } from 'zod';
+import * as z from 'zod';
 
 export const userSchema = z.object({
-  fullName: z.string().min(2, 'Full name must be at least 2 characters'),
-  age: z.number().min(18, 'Must be at least 18 years old'),
-  birthdate: z.preprocess((arg) => {
-    if (typeof arg === "string" || arg instanceof Date) {
-      return new Date(arg);
-    }
-    return arg;
-  }, z.date().refine((date) => !isNaN(date.getTime()), {
-    message: "Invalid date",
-  })),
-  address: z.string().min(5, 'Address must be at least 5 characters'),
-  contactNumber: z.string().regex(/^(\+63|0)?9\d{9}$/, 'Invalid phone number'),
+  fullName: z.string().min(1, 'Full name is required'),
+  age: z.number().nullable().refine((val) => val === null || (val >= 18 && val <= 120), {
+    message: 'Age must be between 18 and 120',
+  }),
+  birthdate: z.string().min(1, 'Birthdate is required'),
+  address: z.string().min(1, 'Address is required'),
+  contactNumber: z.string().min(1, 'Contact number is required'),
   email: z.string().email('Invalid email address'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
+  password: z.string().min(8, 'Password must be at least 8 characters long'),
 });
 
 export const loginSchema = z.object({
