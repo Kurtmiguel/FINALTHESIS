@@ -1,7 +1,6 @@
 "use client";
 
 import React from 'react';
-import { useSignUp } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -17,17 +16,16 @@ import {
 } from "@/components/ui/form";
 import Link from 'next/link';
 import Image from 'next/image';
-import { z } from 'zod'; // Add this import
+import { z } from 'zod';
 
 export const RegisterForm = () => {
-  const { signUp, isLoaded } = useSignUp();
   const router = useRouter();
 
-  const methods = useForm<z.infer<typeof userSchema>>({ // Add type here
+  const methods = useForm<z.infer<typeof userSchema>>({
     resolver: zodResolver(userSchema),
     defaultValues: {
       fullName: '',
-      age: null, // Change this to null
+      age: null,
       birthdate: '',
       address: '',
       contactNumber: '',
@@ -37,26 +35,16 @@ export const RegisterForm = () => {
   });
 
   const onSubmit = async (data: z.infer<typeof userSchema>) => {
-    if (!isLoaded) return;
-  
     try {
-      const result = await signUp.create({
-        firstName: data.fullName.split(' ')[0],
-        lastName: data.fullName.split(' ').slice(1).join(' '),
-        emailAddress: data.email,
-        password: data.password,
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
       });
-  
-      if (result.status === 'complete') {
-        await signUp.update({
-          unsafeMetadata: {
-            age: data.age,
-            birthdate: data.birthdate,
-            address: data.address,
-            contactNumber: data.contactNumber,
-          },
-        });
-  
+
+      if (response.ok) {
         router.push('/dashboard');
       } else {
         console.error('Registration failed');
@@ -66,6 +54,7 @@ export const RegisterForm = () => {
     }
   };
 
+  // Rest of the component remains the same
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header remains the same */}

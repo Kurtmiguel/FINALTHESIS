@@ -1,7 +1,6 @@
 "use client";
 
 import React from 'react';
-import { useSignIn } from '@clerk/nextjs';
 import { useRouter } from 'next/navigation';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -19,7 +18,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 
 export const LoginPageComponent = () => {
-  const { signIn, isLoaded } = useSignIn();
   const router = useRouter();
 
   const methods = useForm({
@@ -31,15 +29,16 @@ export const LoginPageComponent = () => {
   });
 
   const onSubmit = async (data: any) => {
-    if (!isLoaded) return;
-
     try {
-      const result = await signIn.create({
-        identifier: data.email,
-        password: data.password,
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
       });
 
-      if (result.status === 'complete') {
+      if (response.ok) {
         router.push('/dashboard');
       } else {
         console.error('Login failed');
@@ -48,10 +47,6 @@ export const LoginPageComponent = () => {
       console.error('Error during login:', error);
     }
   };
-
-  if (!isLoaded) {
-    return <div>Loading...</div>;
-  }
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -121,3 +116,4 @@ export const LoginPageComponent = () => {
     </div>
   );
 };
+

@@ -1,6 +1,9 @@
+// pages/api/auth/[...nextauth].ts
+
 import NextAuth, { User as NextAuthUser } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
-import clientPromise from '@/lib/mongodb';
+import dbConnect from '@/lib/mongodb'; // Import your dbConnect function
+import User from '@/app/models/User';
 import { compare } from 'bcryptjs';
 
 // Extend the User type
@@ -22,10 +25,9 @@ const handler = NextAuth({
         }
 
         try {
-          const client = await clientPromise;
-          const db = client.db();
+          await dbConnect(); // Ensure the database connection is established
 
-          const user = await db.collection('users').findOne({ email: credentials.email });
+          const user = await User.findOne({ email: credentials.email }).exec();
 
           if (!user) {
             throw new Error('No user found with this email');
@@ -40,8 +42,8 @@ const handler = NextAuth({
           return {
             id: user._id.toString(),
             email: user.email,
-            name: user.name,
-            isAdmin: user.isAdmin || false,
+            name: user.fullName, // Use the fullName field
+            isAdmin: user.role === 'admin', // Determine admin status based on role
           };
         } catch (error) {
           console.error('Error during authentication:', error);
@@ -80,3 +82,4 @@ const handler = NextAuth({
 });
 
 export { handler as GET, handler as POST };
+ 
