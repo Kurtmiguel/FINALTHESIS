@@ -1,26 +1,28 @@
-import { NextApiRequest, NextApiResponse } from 'next'
-import clientPromise from '@/lib/mongodb'
+import { NextApiRequest, NextApiResponse } from 'next';
+import dbConnect from '@/lib/mongodb';
+import User from '@/app/models/User'; // Assuming you have a User model
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
-    return res.status(405).json({ message: 'Method not allowed' })
+    return res.status(405).json({ message: 'Method not allowed' });
   }
 
   try {
-    const client = await clientPromise
-    const usersCollection = client.db().collection('users')
+    await dbConnect(); // Establish Mongoose connection
 
-    const { email } = req.body
-    const existingUser = await usersCollection.findOne({ email })
+    const { email, ...rest } = req.body;
+    const existingUser = await User.findOne({ email });
 
     if (existingUser) {
-      return res.status(400).json({ message: 'User already exists' })
+      return res.status(400).json({ message: 'User already exists' });
     }
 
-    const result = await usersCollection.insertOne(req.body)
-    res.status(201).json({ message: 'User created', userId: result.insertedId })
+    const newUser = new User({ email, ...rest });
+    await newUser.save();
+
+    res.status(201).json({ message: 'User created', userId: newUser._id });
   } catch (error) {
-    console.error('Registration error:', error)
-    res.status(500).json({ message: 'Internal server error' })
+    console.error('Registration error:', error);
+    res.status(500).json({ message: 'Internal server error' });
   }
 }
