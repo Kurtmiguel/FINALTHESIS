@@ -21,8 +21,6 @@ export const RegisterForm = () => {
     resolver: zodResolver(userSchema),
     defaultValues: {
       fullName: '',
-      age: undefined,
-      birthdate: undefined,
       address: '',
       contactNumber: '',
       email: '',
@@ -53,8 +51,8 @@ export const RegisterForm = () => {
         </div>
       </header>
 
-      <main className="flex-grow p-4">
-        <div className="max-w-md mx-auto bg-white p-6 rounded-lg shadow-md">
+      <main className="flex-grow flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white p-6 rounded-lg shadow-md">
           <h2 className="text-2xl font-bold mb-4">Registration Form</h2>
           <form onSubmit={methods.handleSubmit(onSubmit)} className="space-y-4">
             <FormProvider {...methods}>
@@ -67,39 +65,6 @@ export const RegisterForm = () => {
                       <Input placeholder="Enter your full name" {...field} />
                     </FormControl>
                     <FormMessage>{methods.formState.errors.fullName?.message}</FormMessage>
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                name="age"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Age</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        placeholder="Enter your age"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage>{methods.formState.errors.age?.message}</FormMessage>
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                name="birthdate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Birthdate</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="date"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage>{methods.formState.errors.birthdate?.message}</FormMessage>
                   </FormItem>
                 )}
               />
