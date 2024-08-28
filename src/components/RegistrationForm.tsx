@@ -6,6 +6,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { userSchema } from '@/lib/schemas';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 import {
   FormControl,
   FormField,
@@ -13,8 +15,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import Link from 'next/link';
-import Image from 'next/image';
+
 
 export const RegisterForm = () => {
   const methods = useForm({
@@ -35,22 +36,7 @@ export const RegisterForm = () => {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="bg-blue-950 text-white p-4">
-        <div className="container mx-auto flex justify-between items-center">
-          <Link href="/" className="flex items-center">
-            <Image
-              src="/brgylogo.png"  
-              alt="Logo"
-              width={40}
-              height={40}
-              className="mr-2"
-              priority={true}
-            />
-            <span className="text-2xl font-bold">Barangay Canine Management System</span>
-          </Link>
-        </div>
-      </header>
-
+      <Header />
       <main className="flex-grow flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-white p-6 rounded-lg shadow-md">
           <h2 className="text-2xl font-bold mb-4">Registration Form</h2>
@@ -126,10 +112,7 @@ export const RegisterForm = () => {
           </form>
         </div>
       </main>
-
-      <footer className="bg-blue-950 text-white p-4 text-center">
-        <p>&copy; {new Date().getFullYear()} Barangay Canine Management System</p>
-      </footer>
+      <Footer />
     </div>
   );
 };
