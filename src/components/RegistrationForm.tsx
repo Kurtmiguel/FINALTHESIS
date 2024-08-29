@@ -17,6 +17,8 @@ import {
 import Link from 'next/link';
 import Image from 'next/image';
 import { z } from 'zod';
+import Footer from './Footer';
+import Header from './Header';
 
 export const RegisterForm = () => {
   const router = useRouter();
@@ -54,25 +56,10 @@ export const RegisterForm = () => {
     }
   };
 
-  // Rest of the component remains the same
+
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Header remains the same */}
-      <header className="bg-blue-950 text-white p-4">
-        <div className="container mx-auto flex justify-between items-center">
-          <Link href="/" className="flex items-center">
-            <Image
-              src="/brgylogo.png"  
-              alt="Logo"
-              width={40}
-              height={40}
-              className="mr-2"
-              priority={true}
-            />
-            <span className="text-2xl font-bold">Barangay Canine Management System</span>
-          </Link>
-        </div>
-      </header>
+      <Header/>
       <main className="flex-grow p-4">
         <div className="max-w-md mx-auto bg-white p-6 rounded-lg shadow-md">
           <h2 className="text-2xl font-bold mb-4">Registration Form</h2>
@@ -192,10 +179,7 @@ export const RegisterForm = () => {
           </FormProvider>
         </div>
       </main>
-      {/* Footer remains the same */}
-      <footer className="bg-blue-950 text-white p-4 text-center">
-        <p>&copy; {new Date().getFullYear()} Barangay Canine Management System</p>
-      </footer>
+      <Footer/>
     </div>
   );
 };
