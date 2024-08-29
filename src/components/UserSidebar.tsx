@@ -24,7 +24,7 @@ export default function Sidebar({ activeTab, setActiveTab }: Props) {
           onClick={() => setActiveTab('DogReg')}
         >
           <FileText className="mr-2 h-4 w-4" />
-          Dog Register
+          Dog Registration
         </Button>
         <Button 
           variant={activeTab === 'monitoring' ? "secondary" : "ghost"} 
