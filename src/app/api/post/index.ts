@@ -17,7 +17,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const posts = await db.collection('posts').find().toArray();
     return res.status(200).json(posts);
   } else if (req.method === 'POST') {
-    if (!session.user.isAdmin) {
+    if (!session.user?.isAdmin) {
       return res.status(403).json({ message: 'Forbidden' });
     }
 

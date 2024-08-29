@@ -1,9 +1,9 @@
-import NextAuth from 'next-auth';
+import NextAuth, { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { compare } from 'bcryptjs';
 import clientPromise from '@/lib/mongodb';
 
-export default NextAuth({
+export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
       name: 'Credentials',
@@ -45,11 +45,15 @@ export default NextAuth({
       return token;
     },
     async session({ session, token }) {
-      session.user.isAdmin = token.isAdmin;
+      if (session.user) {
+        session.user.isAdmin = token.isAdmin;
+      }
       return session;
     }
   },
   pages: {
     signIn: '/auth/login',
   },
-});
+};
+
+export default NextAuth(authOptions);
