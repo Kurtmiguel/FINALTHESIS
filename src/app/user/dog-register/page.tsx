@@ -1,11 +1,13 @@
-import React, { useState, ChangeEvent, FormEvent } from 'react'
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+"use client";
+
+import React, { useState, ChangeEvent, FormEvent, useRef } from 'react'
 
 export default function DogRegister() {
   const [image, setImage] = useState<File | null>(null)
   const [hasCollar, setHasCollar] = useState<boolean>(false)
+  const [showAlert, setShowAlert] = useState<boolean>(false)
+  const [alertMessage, setAlertMessage] = useState<string>('')
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null
@@ -18,7 +20,6 @@ export default function DogRegister() {
     const form = e.currentTarget
     const formData = new FormData()
 
-    // Append form field data
     formData.append('dogName', (form.dogName as HTMLInputElement).value)
     formData.append('breed', (form.breed as HTMLInputElement).value)
     formData.append('age', (form.age as HTMLInputElement).value)
@@ -35,52 +36,89 @@ export default function DogRegister() {
       })
       
       if (response.ok) {
-        console.log('Dog registered successfully')
-        // Reset form or show success message
+        setAlertMessage('Dog registered successfully')
+        setShowAlert(true)
+        form.reset()
+        setHasCollar(false)
+        setImage(null)
       } else {
-        console.error('Failed to register dog')
-        // Show error message
+        setAlertMessage('Failed to register dog')
+        setShowAlert(true)
       }
     } catch (error) {
       console.error('Error:', error)
-      // Show error message
+      setAlertMessage('An error occurred while registering the dog')
+      setShowAlert(true)
     }
   }
 
   return (
-    <div className="p-8">
-      <h2 className="text-2xl font-bold mb-4">Dog Registration</h2>
-      <form className="space-y-4" onSubmit={handleSubmit}>
-        <div>
-          <Label htmlFor="dogName">Dog Name</Label>
-          <Input id="dogName" name="dogName" placeholder="Enter dog's name" required />
-        </div>
-        <div>
-          <Label htmlFor="breed">Breed</Label>
-          <Input id="breed" name="breed" placeholder="Enter dog's breed" required />
-        </div>
-        <div>
-          <Label htmlFor="age">Age</Label>
-          <Input id="age" name="age" type="number" placeholder="Enter dog's age" required />
-        </div>
-        <div>
-          <Label htmlFor="image">Dog Image</Label>
-          <Input id="image" type="file" accept="image/*" onChange={handleImageChange} />
-        </div>
-        <div className="flex items-center space-x-2">
-          <input
-            type="checkbox"
-            id="hasCollar"
-            checked={hasCollar}
-            onChange={(e) => setHasCollar(e.target.checked)}
-            className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-          />
-          <Label htmlFor="hasCollar" className="text-sm font-medium text-gray-700">
-            Dog has a collar
-          </Label>
-        </div>
-        <Button type="submit">Register Dog</Button>
-      </form>
+    <div className="min-h-screen bg-gradient-to-br from-purple-100 to-indigo-200 flex items-center justify-center p-4">
+      <div className="bg-white p-8 rounded-2xl shadow-lg max-w-md w-full">
+        <h2 className="text-3xl font-bold mb-6 text-indigo-800 text-center">Dog Registration</h2>
+        {showAlert && (
+          <div className={`p-4 mb-6 text-sm rounded-lg ${alertMessage.includes('successfully') ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`} role="alert">
+            {alertMessage}
+            <button onClick={() => setShowAlert(false)} className="float-right font-bold">&times;</button>
+          </div>
+        )}
+        <form className="space-y-6" onSubmit={handleSubmit}>
+          <div>
+            <label htmlFor="dogName" className="block text-sm font-medium text-gray-700 mb-1">Dog Name</label>
+            <input id="dogName" name="dogName" placeholder="Enter dog's name" required 
+                   className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 ease-in-out" />
+          </div>
+          <div>
+            <label htmlFor="breed" className="block text-sm font-medium text-gray-700 mb-1">Breed</label>
+            <input id="breed" name="breed" placeholder="Enter dog's breed" required 
+                   className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 ease-in-out" />
+          </div>
+          <div>
+            <label htmlFor="age" className="block text-sm font-medium text-gray-700 mb-1">Age</label>
+            <input id="age" name="age" type="number" placeholder="Enter dog's age" required 
+                   className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 ease-in-out" />
+          </div>
+          <div>
+            <label htmlFor="image" className="block text-sm font-medium text-gray-700 mb-1">Dog Image</label>
+            <input 
+              ref={fileInputRef}
+              id="image" 
+              type="file" 
+              accept="image/*" 
+              onChange={handleImageChange}
+              className="hidden"
+            />
+            <div className="flex items-center space-x-2">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition duration-150 ease-in-out"
+              >
+                Choose File
+              </button>
+              <span className="text-sm text-gray-500">
+                {image ? image.name : 'No file chosen'}
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="hasCollar"
+              checked={hasCollar}
+              onChange={(e) => setHasCollar(e.target.checked)}
+              className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+            />
+            <label htmlFor="hasCollar" className="text-sm font-medium text-gray-700">
+              Dog has a collar
+            </label>
+          </div>
+          <button type="submit" className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition duration-150 ease-in-out">
+            Register Dog
+          </button>
+        </form>
+      </div>
     </div>
   )
+
 }
