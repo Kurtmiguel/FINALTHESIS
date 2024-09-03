@@ -14,8 +14,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import Link from 'next/link';
-import Image from 'next/image';
+
 import { z } from 'zod';
 import Footer from './Footer';
 import Header from './Header';
