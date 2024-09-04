@@ -55,7 +55,7 @@ export const RegisterForm = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <Header/>
-      <main className="flex-grow flex items-center justify-center p-4">
+      <main className="flex-grow bg-gray-100 flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-white p-6 rounded-lg shadow-md">
           <h2 className="text-2xl font-bold mb-4">Registration Form</h2>
           {error && <p className="text-red-500 mb-4">{error}</p>}

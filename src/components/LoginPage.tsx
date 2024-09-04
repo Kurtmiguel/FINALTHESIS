@@ -58,7 +58,7 @@ export const LoginPageComponent = () => {
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-      <main className="flex-grow flex items-center justify-center p-4">
+      <main className="flex-grow bg-gray-100 flex items-center justify-center p-4">
         <div className="max-w-lg w-full bg-white p-8 rounded-lg shadow-lg">
           <h2 className="text-3xl font-bold mb-6">Login</h2>
           {error && <p className="text-red-500 mb-4">{error}</p>}
