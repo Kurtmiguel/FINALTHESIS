@@ -21,7 +21,7 @@ export default async function DashboardLayout({
       <Header />
       <div className="flex flex-1">
         <DashboardSidebar />
-        <main className="flex-1 bg-gray-50 overflow-y-auto">
+        <main className="flex-1 bg-gray-100 overflow-y-auto">
           <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
             {children}
           </div>

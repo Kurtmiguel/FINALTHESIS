@@ -1,16 +1,25 @@
-'use client';
+import React from 'react';
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import AdminPostForm from '@/components/AdminPostForm';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-import { useSession } from 'next-auth/react';
-
-export default function AdminDashboardPage() {
-  const { data: session } = useSession();
+export default async function AdminDashboardPage() {
+  const session = await getServerSession(authOptions);
 
   return (
-    <div className="px-4 py-6 sm:px-0">
-      <h1 className="text-3xl font-bold text-gray-900 mb-6">Admin Dashboard</h1>
-      <h2 className="text-2xl font-semibold text-gray-900">Welcome, Admin {session?.user?.name}!</h2>
-      <p className="mt-2 text-gray-600">This is the admin dashboard. Here you can manage users, view statistics, and perform administrative tasks.</p>
-      {/* Add more admin dashboard content here */}
+    <div className="space-y-6">
+      <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+      <h2 className="text-2xl font-semibold">Welcome, {session?.user?.name}!</h2>
+      
+      <Card>
+        <CardHeader>
+          <CardTitle>Create New Post</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <AdminPostForm />
+        </CardContent>
+      </Card>
     </div>
   );
 }

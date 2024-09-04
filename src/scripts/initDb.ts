@@ -34,7 +34,7 @@ async function initDb() {
       const hashedPassword = await bcrypt.hash(adminPassword, 10);
 
       const newAdmin = new User({
-        fullName: 'Admin User',
+        fullName: 'Barangay Panapaan V',  // Changed to Barangay Panapaan V
         address: 'Admin Address',
         contactNumber: '1234567890',
         email: adminEmail,
@@ -45,15 +45,24 @@ async function initDb() {
       await newAdmin.save();
       console.log('Admin user created successfully');
       console.log('Admin details:', {
+        fullName: newAdmin.fullName,  // Added to log the full name
         email: newAdmin.email,
         isAdmin: newAdmin.isAdmin
       });
     } else {
       console.log('Admin user already exists');
       console.log('Existing admin details:', {
+        fullName: existingAdmin.fullName,  // Added to log the full name
         email: existingAdmin.email,
         isAdmin: existingAdmin.isAdmin
       });
+
+      // Update the existing admin's name if it's different
+      if (existingAdmin.fullName !== 'Barangay Panapaan V') {
+        existingAdmin.fullName = 'Barangay Panapaan V';
+        await existingAdmin.save();
+        console.log('Updated existing admin name to Barangay Panapaan V');
+      }
     }
   } catch (error) {
     console.error('Error in initDb:', error);

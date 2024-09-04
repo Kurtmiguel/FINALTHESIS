@@ -23,8 +23,8 @@ export default function DashboardSidebar() {
             href={item.href}
             className={`flex items-center px-4 py-3 mb-2 rounded-lg transition-colors duration-150 ease-in-out ${
               pathname === item.href
-                ? 'bg-blue-100 text-blue-800'
-                : 'text-gray-700 hover:bg-blue-50 hover:text-blue-800'
+                ? 'bg-blue-200 text-blue-800'
+                : 'text-gray-700 hover:bg-blue-100 hover:text-blue-800'
             }`}
           >
             <item.icon className="h-5 w-5 mr-3" />
@@ -33,7 +33,7 @@ export default function DashboardSidebar() {
         ))}
         <button
           onClick={() => signOut({ callbackUrl: '/login' })}
-          className="w-full flex items-center px-4 py-3 mt-4 rounded-lg text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-800 transition-colors duration-150 ease-in-out"
+          className="w-full flex items-center px-4 py-3 mt-4 rounded-lg text-sm font-medium text-gray-700 hover:bg-blue-100 hover:text-blue-800 transition-colors duration-150 ease-in-out"
         >
           <LogOutIcon className="h-5 w-5 mr-3" />
           Logout
