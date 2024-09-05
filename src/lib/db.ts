@@ -31,6 +31,7 @@ if (!global.mongoose) {
 
 async function dbConnect(): Promise<typeof mongoose> {
   if (cached.conn) {
+    console.log('Using existing database connection');
     return cached.conn;
   }
 
@@ -39,7 +40,9 @@ async function dbConnect(): Promise<typeof mongoose> {
       bufferCommands: false,
     };
 
+    console.log('Creating new database connection');
     cached.promise = mongoose.connect(MONGODB_URI, opts).then((mongoose) => {
+      console.log('Database connected successfully');
       return mongoose;
     });
   }
@@ -48,11 +51,35 @@ async function dbConnect(): Promise<typeof mongoose> {
     cached.conn = await cached.promise;
   } catch (e) {
     cached.promise = null;
-    console.error('Error connecting to MongoDB:', e);
+    if (e instanceof Error) {
+      console.error('Error connecting to MongoDB:', e.message);
+    } else {
+      console.error('Unknown error occurred while connecting to MongoDB');
+    }
     throw e;
   }
 
   return cached.conn;
 }
+
+// Add event listeners for connection states
+mongoose.connection.on('connected', () => {
+  console.log('MongoDB connection established');
+});
+
+mongoose.connection.on('error', (err) => {
+  console.error('MongoDB connection error:', err);
+});
+
+mongoose.connection.on('disconnected', () => {
+  console.log('MongoDB connection disconnected');
+});
+
+// Gracefully close the MongoDB connection when the Node process ends
+process.on('SIGINT', async () => {
+  await mongoose.connection.close();
+  console.log('MongoDB connection closed due to application termination');
+  process.exit(0);
+});
 
 export default dbConnect;
