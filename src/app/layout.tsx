@@ -1,20 +1,25 @@
-import React, { ReactNode } from 'react';
-import type { Metadata } from 'next';
-import './globals.css'
+import { AuthProvider } from './authProvider';
+import './globals.css';
+import { Inter } from 'next/font/google';
 
-export const metadata: Metadata = {
-  title: 'Your App Name',
-  description: 'Description of your app',
+
+const inter = Inter({ subsets: ['latin'] });
+
+export const metadata = {
+  title: 'Barangay Canine Management System',
+  description: 'Manage and monitor the canine population in your barangay',
 };
 
 export default function RootLayout({
   children,
 }: {
-  children: ReactNode
+  children: React.ReactNode;
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body className={inter.className}>
+        <AuthProvider>{children}</AuthProvider>
+      </body>
     </html>
-  )
+  );
 }

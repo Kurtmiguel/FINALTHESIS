@@ -1,12 +1,6 @@
-import HomepageComponent from '@/components/Homepage'
-import React from 'react'
+import HomepageComponent from "@/components/Homepage";
 
-const Home = () => {
-  return (
-    <>
-      <HomepageComponent />
-    </>
-  )
+
+export default function Home() {
+  return <HomepageComponent />;
 }
-
-export default Home

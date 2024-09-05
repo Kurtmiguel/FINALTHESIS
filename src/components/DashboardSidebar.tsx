@@ -2,17 +2,16 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { HomeIcon, FolderIcon, BarChartIcon, FileTextIcon, LogOutIcon } from 'lucide-react';
+import { HomeIcon, ActivityIcon, UserIcon, LogOutIcon } from 'lucide-react';
 import { signOut } from 'next-auth/react';
 
 const navItems = [
-  { icon: HomeIcon, label: 'Home', href: '/admin-dashboard' },
-  { icon: BarChartIcon, label: 'Analytics', href: '/admin-dashboard/analytics' },
-  { icon: FileTextIcon, label: 'Posts', href: '/admin-dashboard/posts' },
-  { icon: FolderIcon, label: 'Records', href: '/admin-dashboard/records' },
+  { icon: HomeIcon, label: 'Home', href: '/dashboard' },
+  { icon: ActivityIcon, label: 'Monitoring', href: '/dashboard/monitoring' },
+  { icon: UserIcon, label: 'Profile', href: '/dashboard/profile' },
 ];
 
-export default function AdminSidebar() {
+export default function DashboardSidebar() {
   const pathname = usePathname();
 
   return (
@@ -24,8 +23,8 @@ export default function AdminSidebar() {
             href={item.href}
             className={`flex items-center px-4 py-3 mb-2 rounded-lg transition-colors duration-150 ease-in-out ${
               pathname === item.href
-                ? 'bg-blue-100 text-blue-800'
-                : 'text-gray-700 hover:bg-blue-50 hover:text-blue-800'
+                ? 'bg-blue-200 text-blue-800'
+                : 'text-gray-700 hover:bg-blue-100 hover:text-blue-800'
             }`}
           >
             <item.icon className="h-5 w-5 mr-3" />
@@ -33,8 +32,8 @@ export default function AdminSidebar() {
           </Link>
         ))}
         <button
-          onClick={() => signOut({ callbackUrl: '/auth/login' })}
-          className="w-full flex items-center px-4 py-3 mt-4 rounded-lg text-sm font-medium text-gray-700 hover:bg-blue-50 hover:text-blue-800 transition-colors duration-150 ease-in-out"
+          onClick={() => signOut({ callbackUrl: '/login' })}
+          className="w-full flex items-center px-4 py-3 mt-4 rounded-lg text-sm font-medium text-gray-700 hover:bg-blue-100 hover:text-blue-800 transition-colors duration-150 ease-in-out"
         >
           <LogOutIcon className="h-5 w-5 mr-3" />
           Logout

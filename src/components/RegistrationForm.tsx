@@ -1,9 +1,9 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { userSchema } from '@/lib/schemas';
+import { userSchema, UserFormData } from '@/lib/schemas';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
@@ -13,11 +13,14 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import Link from 'next/link';
-import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import Footer from './Footer';
+import Header from './Header';
 
 export const RegisterForm = () => {
-  const methods = useForm({
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+  const methods = useForm<UserFormData>({
     resolver: zodResolver(userSchema),
     defaultValues: {
       fullName: '',
@@ -28,34 +31,36 @@ export const RegisterForm = () => {
     },
   });
 
-  const onSubmit = (data: any) => {
-    console.log(data);
-    // Handle form submission
+  const onSubmit = async (data: UserFormData) => {
+    try {
+      const response = await fetch('/api/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (response.ok) {
+        router.push('/login');
+      } else {
+        const errorData = await response.json();
+        setError(errorData.message || 'Registration failed. Please try again.');
+      }
+    } catch (error) {
+      setError('An error occurred. Please try again.');
+    }
   };
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="bg-blue-950 text-white p-4">
-        <div className="container mx-auto flex justify-between items-center">
-          <Link href="/" className="flex items-center">
-            <Image
-              src="/brgylogo.png"  
-              alt="Logo"
-              width={40}
-              height={40}
-              className="mr-2"
-              priority={true}
-            />
-            <span className="text-2xl font-bold">Barangay Canine Management System</span>
-          </Link>
-        </div>
-      </header>
-
-      <main className="flex-grow flex items-center justify-center p-4">
+      <Header/>
+      <main className="flex-grow bg-gray-100 flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-white p-6 rounded-lg shadow-md">
           <h2 className="text-2xl font-bold mb-4">Registration Form</h2>
+          {error && <p className="text-red-500 mb-4">{error}</p>}
           <form onSubmit={methods.handleSubmit(onSubmit)} className="space-y-4">
-            <FormProvider {...methods}>
+          <FormProvider {...methods}>
               <FormField
                 name="fullName"
                 render={({ field }) => (
@@ -126,10 +131,7 @@ export const RegisterForm = () => {
           </form>
         </div>
       </main>
-
-      <footer className="bg-blue-950 text-white p-4 text-center">
-        <p>&copy; {new Date().getFullYear()} Barangay Canine Management System</p>
-      </footer>
+      <Footer/>
     </div>
   );
 };

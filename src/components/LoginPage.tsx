@@ -1,11 +1,12 @@
-"use client";
+'use client';
 
-import React, { useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { loginSchema } from '@/lib/schemas';
+import { loginSchema, LoginFormData } from '@/lib/schemas';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   FormControl,
   FormField,
@@ -14,13 +15,15 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import Link from 'next/link';
-import Image from 'next/image';
+import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import Header from '../components/Header';
+import Footer from '../components/Footer';
 
 export const LoginPageComponent = () => {
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const router = useRouter();
-  const methods = useForm({
+  const methods = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
       email: '',
@@ -29,51 +32,40 @@ export const LoginPageComponent = () => {
     },
   });
 
-  const onSubmit = async (data: any) => {
-    console.log(data);
-    if (data.email === 'kurtmiguel17@gmail.com' && data.password === '123456') {
-      if (data.isAdmin) {
-        // Redirect to admin dashboard
-        router.push('/admin-dashboard');
+  const onSubmit = async (data: LoginFormData) => {
+    try {
+      const result = await signIn('credentials', {
+        redirect: false,
+        email: data.email,
+        password: data.password,
+        isAdmin: data.isAdmin,
+      });
+
+      if (result?.error) {
+        setError(result.error);
       } else {
-        // Redirect to user dashboard
-        router.push('/dashboard');
+        if (data.isAdmin) {
+          router.push('/admin-dashboard');
+        } else {
+          router.push('/dashboard');
+        }
       }
-    } else {
-      // Handle invalid credentials
-      console.error('Invalid credentials');
-      // You might want to set an error state and display it to the user
+    } catch (error) {
+      setError('An error occurred. Please try again.');
     }
   };
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="bg-blue-950 text-white p-4">
-        <div className="container mx-auto flex justify-between items-center">
-          <Link href="/" className="flex items-center">
-            <Image
-              src="/brgylogo.png"  
-              alt="Logo"
-              width={40}
-              height={40}
-              className="mr-2"
-              priority={true}
-            />
-            <span className="text-2xl font-bold">Barangay Canine Management System</span>
-          </Link>
-          <nav>
-            <Link href="/login" className="mr-4">Login</Link>
-            <Link href="/register">Register</Link>
-          </nav>
-        </div>
-      </header>
-
-      <main className="flex-grow flex items-center justify-center p-4">
-        <div className="max-w-lg bg-white p-8 rounded-lg shadow-lg">
+      <Header />
+      <main className="flex-grow bg-gray-100 flex items-center justify-center p-4">
+        <div className="max-w-lg w-full bg-white p-8 rounded-lg shadow-lg">
           <h2 className="text-3xl font-bold mb-6">Login</h2>
-          <form onSubmit={methods.handleSubmit(onSubmit)} className="space-y-5">
-            <FormProvider {...methods}>
+          {error && <p className="text-red-500 mb-4">{error}</p>}
+          <FormProvider {...methods}>
+            <form onSubmit={methods.handleSubmit(onSubmit)} className="space-y-5">
               <FormField
+                control={methods.control}
                 name="email"
                 render={({ field }) => (
                   <FormItem>
@@ -86,12 +78,13 @@ export const LoginPageComponent = () => {
                         {...field}
                       />
                     </FormControl>
-                    <FormMessage>{methods.formState.errors.email?.message}</FormMessage>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
 
               <FormField
+                control={methods.control}
                 name="password"
                 render={({ field }) => (
                   <FormItem>
@@ -104,26 +97,27 @@ export const LoginPageComponent = () => {
                         {...field}
                       />
                     </FormControl>
-                    <FormMessage>{methods.formState.errors.password?.message}</FormMessage>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
 
               <FormField
+                control={methods.control}
                 name="isAdmin"
                 render={({ field }) => (
-                  <FormItem className="flex items-center space-x-2">
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                     <FormControl>
-                      <input
-                        type="checkbox"
-                        checked={isAdmin}
-                        onChange={(e) => {
-                          setIsAdmin(e.target.checked);
-                          field.onChange(e.target.checked);
-                        }}
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
                       />
                     </FormControl>
-                    <FormLabel className="text-lg">Login as Admin</FormLabel>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel className="text-lg">
+                        Login as Admin
+                      </FormLabel>
+                    </div>
                   </FormItem>
                 )}
               />
@@ -134,17 +128,16 @@ export const LoginPageComponent = () => {
               >
                 Log In
               </Button>
-            </FormProvider>
-          </form>
+            </form>
+          </FormProvider>
           <div className="mt-6 text-center">
             <p className="text-sm">Don't have an account? <Link href="/register" className="text-blue-500">Register here</Link></p>
           </div>
         </div>
       </main>
-
-      <footer className="bg-blue-950 text-white p-4 text-center">
-        <p>&copy; {new Date().getFullYear()} Barangay Canine Management System</p>
-      </footer>
+      <Footer />
     </div>
   );
 };
+
+export default LoginPageComponent;
