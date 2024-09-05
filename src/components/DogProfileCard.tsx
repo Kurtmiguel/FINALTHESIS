@@ -30,7 +30,7 @@ export default function DogProfileCard({ dog, onActivateCollar }: DogProfileCard
           <p><strong>Birthday:</strong> {new Date(dog.birthday).toLocaleDateString()}</p>
         </div>
         <div className="w-1/4 flex justify-end">
-          <Button onClick={onActivateCollar}>
+          <Button onClick={onActivateCollar} disabled={dog.collarActivated}>
             {dog.collarActivated ? 'Connected' : 'Activate Collar'}
           </Button>
         </div>

@@ -10,7 +10,6 @@ import { toast } from "@/components/ui/use-toast";
 import { DogData } from '@/lib/schemas';
 import RealTimeTracking from './RealtimeTracking';
 
-
 export default function MonitoringPageContent() {
   const { data: session } = useSession();
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -27,6 +26,7 @@ export default function MonitoringPageContent() {
       const response = await fetch('/api/dogs');
       if (!response.ok) throw new Error('Failed to fetch dog profiles');
       const data: DogData[] = await response.json();
+      console.log('Fetched dog profiles:', data);
       setDogProfiles(data);
     } catch (error) {
       console.error('Error fetching dog profiles:', error);
@@ -37,12 +37,17 @@ export default function MonitoringPageContent() {
   };
 
   const handleCreateDogProfile = (newDog: DogData) => {
-    setDogProfiles([...dogProfiles, newDog]);
+    console.log('New dog profile received:', newDog);
+    setDogProfiles(prevProfiles => {
+      const updatedProfiles = [...prevProfiles, newDog];
+      console.log('Updated dog profiles:', updatedProfiles);
+      return updatedProfiles;
+    });
     setShowCreateModal(false);
-    toast({ title: "Success", description: "Dog profile created successfully." });
   };
 
   const handleActivateCollar = async (dogId: string) => {
+    console.log('Activating collar for dog:', dogId);
     // Implement collar activation logic here
   };
 
@@ -54,7 +59,7 @@ export default function MonitoringPageContent() {
         </Button>
         {isLoading ? (
           <div>Loading dog profiles...</div>
-        ) : (
+        ) : dogProfiles.length > 0 ? (
           dogProfiles.map((dog) => (
             <DogProfileCard 
               key={dog._id} 
@@ -62,6 +67,8 @@ export default function MonitoringPageContent() {
               onActivateCollar={() => handleActivateCollar(dog._id)}
             />
           ))
+        ) : (
+          <div>No dog profiles found. Create one to get started!</div>
         )}
       </div>
       <div className="h-1/2 p-6 bg-gray-100">
