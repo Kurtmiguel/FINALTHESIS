@@ -1,59 +1,33 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { dogSchema, NewDogData } from '@/lib/schemas';
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import * as z from "zod";
-
-const MAX_FILE_SIZE = 5000000; // 5MB
-const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
-
-const formSchema = z.object({
-  name: z.string().min(2, {
-    message: "Name must be at least 2 characters.",
-  }),
-  gender: z.enum(["male", "female"], {
-    required_error: "Please select a gender.",
-  }),
-  breed: z.string().min(2, {
-    message: "Breed must be at least 2 characters.",
-  }),
-  age: z.string().refine((val) => !Number.isNaN(parseInt(val, 10)), {
-    message: "Please enter a valid age.",
-  }),
-  birthday: z.string().refine((val) => !Number.isNaN(Date.parse(val)), {
-    message: "Please enter a valid date.",
-  }),
-  picture: z
-    .any()
-    .refine((files) => files?.length === 1, "Image is required.")
-    .refine((files) => files?.[0]?.size <= MAX_FILE_SIZE, `Max file size is 5MB.`)
-    .refine(
-      (files) => ACCEPTED_IMAGE_TYPES.includes(files?.[0]?.type),
-      ".jpg, .png and .webp files are accepted."
-    ),
-});
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 
 interface DogRegistrationFormProps {
-  onSubmit: (dogProfile: z.infer<typeof formSchema>) => void;
+  onSubmit: (data: NewDogData) => void;
+  initialData?: Partial<NewDogData>;
 }
 
-const DogRegistrationForm: React.FC<DogRegistrationFormProps> = ({ onSubmit }) => {
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+const DogRegistrationForm: React.FC<DogRegistrationFormProps> = ({ onSubmit, initialData }) => {
+  const form = useForm<NewDogData>({
+    resolver: zodResolver(dogSchema),
     defaultValues: {
-      name: "",
-      gender: undefined,
-      breed: "",
-      age: "",
-      birthday: "",
+      name: initialData?.name || "",
+      gender: initialData?.gender || undefined,
+      breed: initialData?.breed || "",
+      age: initialData?.age || undefined,
+      birthday: initialData?.birthday || "",
+      imageUrl: initialData?.imageUrl || "",
+      collarActivated: initialData?.collarActivated || false,
     },
   });
 
-  const handleSubmit = (values: z.infer<typeof formSchema>) => {
+  const handleSubmit = (values: NewDogData) => {
+    console.log('Form values:', values);
     onSubmit(values);
   };
 
@@ -114,7 +88,7 @@ const DogRegistrationForm: React.FC<DogRegistrationFormProps> = ({ onSubmit }) =
             <FormItem>
               <FormLabel>Age</FormLabel>
               <FormControl>
-                <Input type="number" placeholder="Dog's age" {...field} />
+                <Input type="number" placeholder="Dog's age" {...field} onChange={e => field.onChange(parseInt(e.target.value))} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -135,7 +109,7 @@ const DogRegistrationForm: React.FC<DogRegistrationFormProps> = ({ onSubmit }) =
         />
         <FormField
           control={form.control}
-          name="picture"
+          name="imageUrl"
           render={({ field }) => (
             <FormItem>
               <FormLabel>Picture</FormLabel>
@@ -143,7 +117,16 @@ const DogRegistrationForm: React.FC<DogRegistrationFormProps> = ({ onSubmit }) =
                 <Input 
                   type="file" 
                   accept=".jpg,.png,.webp"
-                  onChange={(e) => field.onChange(e.target.files)}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onloadend = () => {
+                        field.onChange(reader.result as string);
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
                 />
               </FormControl>
               <FormMessage />

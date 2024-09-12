@@ -1,59 +1,57 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
+import { Button } from "@/components/ui/button";
 import DogRegistrationForm from './DogRegistrationForm';
+import { NewDogData } from '@/lib/schemas';
 
 interface DogProfileDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onProfileCreation: (profile: NewDogData) => Promise<void>;
 }
 
-const DogProfileDialog: React.FC<DogProfileDialogProps> = ({ open, onOpenChange }) => {
-  const [showRegistrationForm, setShowRegistrationForm] = useState<boolean>(false);
+const DogProfileDialog: React.FC<DogProfileDialogProps> = ({ open, onOpenChange, onProfileCreation }) => {
+  const [step, setStep] = useState<'collar-choice' | 'registration'>('collar-choice');
+  const [hasCollar, setHasCollar] = useState<boolean | null>(null);
 
-  useEffect(() => {
-    if (!open) {
-      // Reset the dialog state when it's closed
-      setShowRegistrationForm(false);
+  const handleOpenChange = (newOpen: boolean) => {
+    if (!newOpen) {
+      // Reset the state when closing the dialog
+      setStep('collar-choice');
+      setHasCollar(null);
     }
-  }, [open]);
-
-  const handleCreateProfile = (hasSmartCollar: boolean): void => {
-    if (hasSmartCollar) {
-      console.log("Creating dog profile with smart collar");
-      onOpenChange(false);
-      // Add your logic for smart collar profile creation
-    } else {
-      setShowRegistrationForm(true);
-    }
+    onOpenChange(newOpen);
   };
 
-  const handleFormSubmit = (dogProfile: any) => {
-    console.log("Submitting dog profile:", dogProfile);
-    // Here you would handle the submission of the dog profile
-    onOpenChange(false);
+  const handleCollarChoice = (choice: boolean) => {
+    setHasCollar(choice);
+    setStep('registration');
+  };
+
+  const handleSubmit = async (data: NewDogData) => {
+    await onProfileCreation({ ...data, collarActivated: hasCollar ?? false });
+    handleOpenChange(false);
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Create Dog Profile</DialogTitle>
         </DialogHeader>
-        {!showRegistrationForm ? (
-          <div className="grid gap-4 py-4">
-            <p className="text-center">Does the dog have a smart collar?</p>
-            <div className="flex justify-center space-x-4">
-              <Button onClick={() => handleCreateProfile(true)} variant="outline">
-                Yes
-              </Button>
-              <Button onClick={() => handleCreateProfile(false)} variant="outline">
-                No
-              </Button>
+        {step === 'collar-choice' ? (
+          <div className="flex flex-col items-center space-y-4">
+            <p>Does the dog have a smart collar?</p>
+            <div className="flex space-x-4">
+              <Button onClick={() => handleCollarChoice(true)}>Yes</Button>
+              <Button onClick={() => handleCollarChoice(false)}>No</Button>
             </div>
           </div>
         ) : (
-          <DogRegistrationForm onSubmit={handleFormSubmit} />
+          <DogRegistrationForm 
+            onSubmit={handleSubmit} 
+            initialData={{ collarActivated: hasCollar ?? false }}
+          />
         )}
       </DialogContent>
     </Dialog>
