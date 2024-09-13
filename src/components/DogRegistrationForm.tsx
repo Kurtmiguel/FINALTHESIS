@@ -1,18 +1,19 @@
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { dogSchema, NewDogData } from '@/lib/schemas';
+import { dogSchema, NewDogData, UpdateDogData } from '@/lib/schemas';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 
 interface DogRegistrationFormProps {
-  onSubmit: (data: NewDogData) => void;
+  onSubmit: (data: NewDogData | UpdateDogData) => void;
   initialData?: Partial<NewDogData>;
+  isEditMode?: boolean;
 }
 
-const DogRegistrationForm: React.FC<DogRegistrationFormProps> = ({ onSubmit, initialData }) => {
+const DogRegistrationForm: React.FC<DogRegistrationFormProps> = ({ onSubmit, initialData, isEditMode = false }) => {
   const form = useForm<NewDogData>({
     resolver: zodResolver(dogSchema),
     defaultValues: {
@@ -133,7 +134,7 @@ const DogRegistrationForm: React.FC<DogRegistrationFormProps> = ({ onSubmit, ini
             </FormItem>
           )}
         />
-        <Button type="submit">Submit</Button>
+        <Button type="submit">{isEditMode ? 'Update' : 'Submit'}</Button>
       </form>
     </Form>
   );

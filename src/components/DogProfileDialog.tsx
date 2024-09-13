@@ -28,9 +28,29 @@ const DogProfileDialog: React.FC<DogProfileDialogProps> = ({ open, onOpenChange,
     setStep('registration');
   };
 
-  const handleSubmit = async (data: NewDogData) => {
-    await onProfileCreation({ ...data, collarActivated: hasCollar ?? false });
-    handleOpenChange(false);
+  const handleSubmit = async (data: NewDogData | Partial<NewDogData>) => {
+    if (isNewDogData(data)) {
+      await onProfileCreation({ ...data, collarActivated: hasCollar ?? false });
+      handleOpenChange(false);
+    } else {
+      console.error('Incomplete dog data submitted');
+    }
+  };
+
+  // Type guard to check if the data is a complete NewDogData
+  const isNewDogData = (data: NewDogData | Partial<NewDogData>): data is NewDogData => {
+    return (
+      'name' in data &&
+      'gender' in data &&
+      'age' in data &&
+      'breed' in data &&
+      'birthday' in data &&
+      typeof data.name === 'string' &&
+      (data.gender === 'male' || data.gender === 'female') &&
+      typeof data.age === 'number' &&
+      typeof data.breed === 'string' &&
+      typeof data.birthday === 'string'
+    );
   };
 
   return (
