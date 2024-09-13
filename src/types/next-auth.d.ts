@@ -3,7 +3,11 @@ import NextAuth from "next-auth"
 
 declare module "next-auth" {
   interface User {
-    isAdmin?: boolean
+    id: string
+    name?: string | null
+    email?: string | null
+    image?: string | null
+    isAdmin: boolean
   }
 
   interface Session {
@@ -12,13 +16,14 @@ declare module "next-auth" {
       name?: string | null
       email?: string | null
       image?: string | null
-      isAdmin?: boolean
+      isAdmin: boolean
     }
   }
 }
 
 declare module "next-auth/jwt" {
   interface JWT {
-    isAdmin?: boolean
+    id: string
+    isAdmin: boolean
   }
 }
