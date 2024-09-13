@@ -2,14 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { HomeIcon, FolderIcon, BarChartIcon, FileTextIcon, LogOutIcon } from 'lucide-react';
+import { HomeIcon, FileTextIcon, BarChartIcon, LogOutIcon } from 'lucide-react';
 import { signOut } from 'next-auth/react';
 
 const navItems = [
   { icon: HomeIcon, label: 'Home', href: '/admin-dashboard' },
-  { icon: BarChartIcon, label: 'Analytics', href: '/admin-dashboard/analytics' },
   { icon: FileTextIcon, label: 'Posts', href: '/admin-dashboard/posts' },
-  { icon: FolderIcon, label: 'Records', href: '/admin-dashboard/records' },
+  { icon: BarChartIcon, label: 'Monitoring', href: '/admin-dashboard/monitoring' },
 ];
 
 export default function AdminSidebar() {

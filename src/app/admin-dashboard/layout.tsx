@@ -4,7 +4,6 @@ import { authOptions } from '../api/auth/[...nextauth]/route';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import AdminSidebar from '@/components/AdminSidebar';
-import DashboardStats from '@/components/DashboardStats';
 
 export default async function AdminDashboardLayout({
   children,
@@ -24,10 +23,9 @@ export default async function AdminDashboardLayout({
         <AdminSidebar />
         <main className="flex-1 bg-gray-100 overflow-y-auto">
           <div className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-            <div className="mb-8">
-              <DashboardStats />
+            <div className="bg-white shadow-sm rounded-lg">
+              {children}
             </div>
-            {children}
           </div>
         </main>
       </div>
