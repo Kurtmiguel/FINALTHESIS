@@ -52,8 +52,12 @@ export async function PUT(req: Request) {
     return NextResponse.json({ error: 'Post not found' }, { status: 404 });
   }
 
-  const newImageUrls = await uploadImages(imageFiles);
-  const updatedImages = existingPost.images ? [...existingPost.images, ...newImageUrls] : newImageUrls;
+  let updatedImages = existingPost.images || [];
+
+  if (imageFiles.length > 0) {
+    const newImageUrls = await uploadImages(imageFiles);
+    updatedImages = [...updatedImages, ...newImageUrls];
+  }
 
   const updatedPost = await Post.findByIdAndUpdate(
     id,
@@ -65,7 +69,9 @@ export async function PUT(req: Request) {
 }
 
 export async function DELETE(req: Request) {
-  const { id } = await req.json();
+  const { searchParams } = new URL(req.url);
+  const id = searchParams.get('id');
+
   if (!id) {
     return NextResponse.json({ error: 'Missing post ID' }, { status: 400 });
   }
