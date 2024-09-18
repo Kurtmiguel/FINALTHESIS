@@ -9,6 +9,7 @@ interface Post {
   title: string;
   content: string;
   author: string;
+  images?: string[]; // Make images optional
   createdAt: string;
 }
 
@@ -29,7 +30,6 @@ export default function PostList() {
       setPosts(data);
     } catch (error) {
       console.error('Error fetching posts:', error);
-      // You might want to set an error state here and display it to the user
     }
   };
 
@@ -44,6 +44,18 @@ export default function PostList() {
             <p>{post.content.length > 100 ? `${post.content.slice(0, 100)}...` : post.content}</p>
             {post.content.length > 100 && (
               <Button variant="link" className="p-0 mt-2">See more</Button>
+            )}
+            {post.images && post.images.length > 0 && ( // Add this check
+              <div className="mt-4 flex flex-wrap gap-2">
+                {post.images.map((image, index) => (
+                  <img
+                    key={index}
+                    src={image}
+                    alt={`Post image ${index + 1}`}
+                    className="w-24 h-24 object-cover rounded"
+                  />
+                ))}
+              </div>
             )}
             <div className="mt-4 text-sm text-gray-500">
               Posted by {post.author} on {new Date(post.createdAt).toLocaleDateString()}

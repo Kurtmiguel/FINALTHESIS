@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,6 +11,7 @@ interface Post {
   title: string;
   content: string;
   author: string;
+  images?: string[]; // Make images optional
   createdAt: string;
 }
 
@@ -18,7 +19,9 @@ export default function PostManagement() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const [images, setImages] = useState<File[]>([]);
   const [editingPost, setEditingPost] = useState<Post | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchPosts();
@@ -34,25 +37,40 @@ export default function PostManagement() {
       setPosts(data);
     } catch (error) {
       console.error('Error fetching posts:', error);
-      // You might want to set an error state here and display it to the user
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const formData = new FormData();
+    formData.append('title', title);
+    formData.append('content', content);
+    formData.append('author', 'Barangay Panapaan V');
+
+    images.forEach((image) => {
+      formData.append('images', image);
+    });
+
     const method = editingPost ? 'PUT' : 'POST';
     const url = editingPost ? `/api/posts/${editingPost._id}` : '/api/posts';
 
+    if (editingPost) {
+      formData.append('id', editingPost._id);
+    }
+
     const response = await fetch(url, {
       method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, content, author: 'Barangay Panapaan V' }),
+      body: formData,
     });
 
     if (response.ok) {
       setTitle('');
       setContent('');
+      setImages([]);
       setEditingPost(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
       fetchPosts();
     }
   };
@@ -67,6 +85,12 @@ export default function PostManagement() {
     const response = await fetch(`/api/posts/${id}`, { method: 'DELETE' });
     if (response.ok) {
       fetchPosts();
+    }
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setImages(Array.from(e.target.files));
     }
   };
 
@@ -86,6 +110,13 @@ export default function PostManagement() {
           required
           rows={5}
         />
+        <Input
+          type="file"
+          accept="image/*"
+          multiple
+          onChange={handleImageChange}
+          ref={fileInputRef}
+        />
         <Button type="submit">{editingPost ? 'Update' : 'Create'} Post</Button>
       </form>
 
@@ -97,6 +128,18 @@ export default function PostManagement() {
             </CardHeader>
             <CardContent>
               <p>{post.content}</p>
+              {post.images && post.images.length > 0 && ( // Add this check
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {post.images.map((image, index) => (
+                    <img
+                      key={index}
+                      src={image}
+                      alt={`Post image ${index + 1}`}
+                      className="w-24 h-24 object-cover rounded"
+                    />
+                  ))}
+                </div>
+              )}
               <div className="mt-4 flex space-x-2">
                 <Button onClick={() => handleEdit(post)}>Edit</Button>
                 <Button onClick={() => handleDelete(post._id)} variant="destructive">Delete</Button>

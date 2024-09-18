@@ -1,7 +1,6 @@
 import * as z from 'zod';
 import { Types } from 'mongoose';
 
-// ... (other schemas remain the same)
 export const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
