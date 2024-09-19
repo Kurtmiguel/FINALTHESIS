@@ -1,4 +1,20 @@
-import mongoose from 'mongoose';
+import mongoose, { Document, Model, Types } from 'mongoose';
+
+// Interface to define the structure of a User document
+export interface IUser extends Document {
+  _id: Types.ObjectId;
+  fullName: string;
+  address: string;
+  contactNumber: string;
+  email: string;
+  password: string;
+  isAdmin: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Interface for the User model
+export interface IUserModel extends Model<IUser> {}
 
 const UserSchema = new mongoose.Schema({
   fullName: {
@@ -28,4 +44,7 @@ const UserSchema = new mongoose.Schema({
   },
 }, { timestamps: true });
 
-export default mongoose.models.User || mongoose.model('User', UserSchema);
+// Check if the model already exists to prevent OverwriteModelError
+const User = (mongoose.models.User as IUserModel) || mongoose.model<IUser, IUserModel>('User', UserSchema);
+
+export default User;

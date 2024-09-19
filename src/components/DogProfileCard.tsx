@@ -14,48 +14,44 @@ interface DogProfileCardProps {
 
 const DogProfileCard: React.FC<DogProfileCardProps> = ({ profile, onEdit, onDelete }) => {
   return (
-    <Card className="overflow-hidden">
-      <CardContent className="p-4 flex items-center space-x-4">
-        <div className="relative w-20 h-20 flex-shrink-0">
-          <Image
-            src={profile.imageUrl || '/placeholder-dog-image.jpg'}
-            alt={`${profile.name}'s picture`}
-            layout="fill"
-            objectFit="cover"
-            className="rounded-full"
-          />
+    <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-300">
+      <CardContent className="p-6">
+        <div className="flex flex-col items-center mb-4">
+          <div className="relative w-24 h-24 mb-4">
+            <Image
+              src={profile.imageUrl || '/placeholder-dog-image.jpg'}
+              alt={`${profile.name}'s picture`}
+              layout="fill"
+              objectFit="cover"
+              className="rounded-full"
+            />
+          </div>
+          <h3 className="text-xl font-semibold text-gray-900">{profile.name}</h3>
+          <Badge variant={profile.collarActivated ? "default" : "secondary"} className="mt-2">
+            {profile.collarActivated ? "Smart Collar Active" : "Smart Collar Inactive"}
+          </Badge>
         </div>
         
-        <div className="flex-grow grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
+        <div className="grid grid-cols-2 gap-y-2 text-sm mb-4">
           <div>
-            <span className="font-semibold">Name: </span>
-            <span>{profile.name}</span>
+            <span className="font-medium text-gray-500">Age: </span>
+            <span className="text-gray-900">{profile.age} years</span>
           </div>
           <div>
-            <span className="font-semibold">Age: </span>
-            <span>{profile.age} years</span>
+            <span className="font-medium text-gray-500">Gender: </span>
+            <span className="text-gray-900">{profile.gender}</span>
           </div>
           <div>
-            <span className="font-semibold">Gender: </span>
-            <span>{profile.gender}</span>
+            <span className="font-medium text-gray-500">Birthday: </span>
+            <span className="text-gray-900">{new Date(profile.birthday).toLocaleDateString()}</span>
           </div>
           <div>
-            <span className="font-semibold">Birthday: </span>
-            <span>{new Date(profile.birthday).toLocaleDateString()}</span>
-          </div>
-          <div>
-            <span className="font-semibold">Breed: </span>
-            <span>{profile.breed}</span>
-          </div>
-          <div>
-            <span className="font-semibold">Smart Collar: </span>
-            <Badge variant={profile.collarActivated ? "default" : "secondary"}>
-              {profile.collarActivated ? "Active" : "Inactive"}
-            </Badge>
+            <span className="font-medium text-gray-500">Breed: </span>
+            <span className="text-gray-900">{profile.breed}</span>
           </div>
         </div>
         
-        <div className="flex flex-col space-y-2">
+        <div className="flex justify-between">
           <Button variant="outline" size="sm" onClick={() => onEdit(profile._id)}>
             <Pencil className="w-4 h-4 mr-2" />
             Edit
