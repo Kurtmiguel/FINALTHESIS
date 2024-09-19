@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Post from '@/models/Posts';
+import { uploadImages } from '@/lib/uploadImages';
 
 export async function GET() {
   await dbConnect();
@@ -9,23 +10,27 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const { title, content, author } = await req.json();
+  const formData = await req.formData();
+  const title = formData.get('title') as string;
+  const content = formData.get('content') as string;
+  const author = formData.get('author') as string;
+  const imageFiles = formData.getAll('images') as File[];
+
+  if (!title || !content || !author) {
+    return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+  }
+
   await dbConnect();
-  const newPost = new Post({ title, content, author });
+
+  const imageUrls = await uploadImages(imageFiles);
+
+  const newPost = new Post({ 
+    title, 
+    content, 
+    author, 
+    images: imageUrls.length > 0 ? imageUrls : [] 
+  });
   await newPost.save();
   return NextResponse.json(newPost);
 }
 
-export async function PUT(req: Request) {
-  const { id, title, content } = await req.json();
-  await dbConnect();
-  const updatedPost = await Post.findByIdAndUpdate(id, { title, content }, { new: true });
-  return NextResponse.json(updatedPost);
-}
-
-export async function DELETE(req: Request) {
-  const { id } = await req.json();
-  await dbConnect();
-  await Post.findByIdAndDelete(id);
-  return NextResponse.json({ message: 'Post deleted successfully' });
-}
