@@ -3,12 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, Loader2 } from 'lucide-react';
 import DogProfileDialog from '@/components/DogProfileDialog';
 import DogProfileEditDialog from '@/components/DogProfileEditDialog';
 import DogProfileCard from '@/components/DogProfileCard';
 import { DogData, NewDogData, UpdateDogData } from '@/lib/schemas';
 import { useRouter } from 'next/navigation';
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const MonitoringPageContent: React.FC = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState<boolean>(false);
@@ -144,62 +145,82 @@ const MonitoringPageContent: React.FC = () => {
   };
 
   if (status === 'loading') {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
   }
 
   if (!session) {
-    return null; // This will prevent any flash of content before redirecting
+    return null;
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <div className="flex flex-1">
-        <main className="flex-1 bg-gray-100 p-8">
-          <div className="max-w-6xl mx-auto space-y-8">
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-semibold">Dog Profiles</h2>
-                <Button 
-                  onClick={() => setIsCreateDialogOpen(true)}
-                  className="flex items-center space-x-2"
-                >
-                  <PlusCircle className="h-5 w-5" />
-                  <span>Create Dog Profile</span>
-                </Button>
-              </div>
-              {error && (
-                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
-                  <strong className="font-bold">Error: </strong>
-                  <span className="block sm:inline">{error}</span>
-                </div>
-              )}
-              <div className="space-y-4">
-                {dogProfiles.map((profile) => (
-                  <DogProfileCard 
-                    key={profile._id} 
-                    profile={profile} 
-                    onEdit={handleEditProfile}
-                    onDelete={handleDeleteProfile}
-                  />
-                ))}
-              </div>
-              {dogProfiles.length === 0 && !error && (
-                <p className="text-center text-gray-500 mt-4">No dog profiles created yet. Click the button above to add a new profile.</p>
-              )}
+    <div className="bg-gray-50 min-h-screen">
+      <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">Dog Monitoring Dashboard</h1>
+          <p className="mt-2 text-sm text-gray-600">Manage and monitor your dog profiles</p>
+        </div>
+
+        <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+          <div className="p-6 border-b border-gray-200">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-semibold text-gray-800">Dog Profiles</h2>
+              <Button 
+                onClick={() => setIsCreateDialogOpen(true)}
+                className="flex items-center space-x-2"
+              >
+                <PlusCircle className="h-5 w-5" />
+                <span>Create Dog Profile</span>
+              </Button>
             </div>
-            <DogProfileDialog 
-              open={isCreateDialogOpen} 
-              onOpenChange={setIsCreateDialogOpen}
-              onProfileCreation={handleProfileCreation}
-            />
-            <DogProfileEditDialog
-              open={isEditDialogOpen}
-              onOpenChange={setIsEditDialogOpen}
-              onProfileUpdate={handleProfileUpdate}
-              dogProfile={editingDog}
-            />
+
+            {error && (
+              <Alert variant="destructive" className="mb-6">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {dogProfiles.map((profile) => (
+                <DogProfileCard 
+                  key={profile._id} 
+                  profile={profile} 
+                  onEdit={handleEditProfile}
+                  onDelete={handleDeleteProfile}
+                />
+              ))}
+            </div>
+
+            {dogProfiles.length === 0 && !error && (
+              <div className="text-center py-12">
+                <PlusCircle className="mx-auto h-12 w-12 text-gray-400" />
+                <h3 className="mt-2 text-sm font-medium text-gray-900">No dog profiles</h3>
+                <p className="mt-1 text-sm text-gray-500">Get started by creating a new dog profile.</p>
+                <div className="mt-6">
+                  <Button onClick={() => setIsCreateDialogOpen(true)}>
+                    <PlusCircle className="h-5 w-5 mr-2" />
+                    Create Dog Profile
+                  </Button>
+                </div>
+              </div>
+            )}
           </div>
-        </main>
+        </div>
+
+        <DogProfileDialog 
+          open={isCreateDialogOpen} 
+          onOpenChange={setIsCreateDialogOpen}
+          onProfileCreation={handleProfileCreation}
+        />
+        <DogProfileEditDialog
+          open={isEditDialogOpen}
+          onOpenChange={setIsEditDialogOpen}
+          onProfileUpdate={handleProfileUpdate}
+          dogProfile={editingDog}
+        />
       </div>
     </div>
   );

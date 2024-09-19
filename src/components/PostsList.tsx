@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 import Image from 'next/image';
+import { Calendar, User } from 'lucide-react';
 
 interface Post {
   _id: string;
@@ -41,30 +42,40 @@ export default function PostList() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {posts.map((post) => (
-        <Card key={post._id}>
+        <Card key={post._id} className="hover:shadow-md transition-shadow duration-300">
           <CardHeader>
-            <CardTitle>{post.title}</CardTitle>
+            <CardTitle className="text-xl font-semibold">{post.title}</CardTitle>
+            <CardDescription className="flex items-center text-sm text-gray-500 mt-2">
+              <User className="w-4 h-4 mr-1" />
+              <span>{post.author}</span>
+              <span className="mx-2">•</span>
+              <Calendar className="w-4 h-4 mr-1" />
+              <span>{new Date(post.createdAt).toLocaleDateString()}</span>
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <p>{post.content.length > 100 ? `${post.content.slice(0, 100)}...` : post.content}</p>
-            {post.content.length > 100 && (
-              <Button variant="link" className="p-0 mt-2">See more</Button>
+            <p className="text-gray-700 mb-4">
+              {post.content.length > 150 ? `${post.content.slice(0, 150)}...` : post.content}
+            </p>
+            {post.content.length > 150 && (
+              <Button variant="link" className="p-0 mb-4">Read more</Button>
             )}
             {post.images && post.images.length > 0 && (
-              <div className="mt-4 flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2">
                 {post.images.map((image, index) => (
                   <Dialog key={index}>
                     <DialogTrigger asChild>
-                      <Image
-                        src={image}
-                        alt={`Post image ${index + 1}`}
-                        width={100}
-                        height={100}
-                        className="object-cover rounded cursor-pointer"
-                        onClick={() => handleImageClick(image)}
-                      />
+                      <div className="relative w-24 h-24 rounded-md overflow-hidden cursor-pointer">
+                        <Image
+                          src={image}
+                          alt={`Post image ${index + 1}`}
+                          layout="fill"
+                          objectFit="cover"
+                          onClick={() => handleImageClick(image)}
+                        />
+                      </div>
                     </DialogTrigger>
                     <DialogContent className="w-full max-w-4xl p-0">
                       <Image
@@ -79,9 +90,6 @@ export default function PostList() {
                 ))}
               </div>
             )}
-            <div className="mt-4 text-sm text-gray-500">
-              Posted by {post.author} on {new Date(post.createdAt).toLocaleDateString()}
-            </div>
           </CardContent>
         </Card>
       ))}
