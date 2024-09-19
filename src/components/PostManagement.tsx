@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import Image from 'next/image';
 
 interface Post {
   _id: string;
@@ -23,6 +25,8 @@ export default function PostManagement() {
   const [images, setImages] = useState<File[]>([]);
   const [editingPost, setEditingPost] = useState<Post | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [imagesToDelete, setImagesToDelete] = useState<string[]>([]);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -55,6 +59,10 @@ export default function PostManagement() {
       formData.append('images', image);
     });
 
+    if (editingPost) {
+      formData.append('imagesToDelete', JSON.stringify(imagesToDelete));
+    }
+
     const method = editingPost ? 'PUT' : 'POST';
     const url = editingPost ? `/api/posts/${editingPost._id}` : '/api/posts';
 
@@ -69,6 +77,7 @@ export default function PostManagement() {
         setContent('');
         setImages([]);
         setEditingPost(null);
+        setImagesToDelete([]);
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
         }
@@ -88,6 +97,7 @@ export default function PostManagement() {
     setTitle(post.title);
     setContent(post.content);
     setImages([]);
+    setImagesToDelete([]);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -98,6 +108,7 @@ export default function PostManagement() {
     setTitle('');
     setContent('');
     setImages([]);
+    setImagesToDelete([]);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -122,8 +133,24 @@ export default function PostManagement() {
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      setImages(Array.from(e.target.files));
+      setImages(prevImages => [...prevImages, ...Array.from(e.target.files as FileList)]);
     }
+  };
+
+  const handleRemoveImage = (index: number) => {
+    setImages(prevImages => prevImages.filter((_, i) => i !== index));
+  };
+
+  const handleRemoveExistingImage = (imageUrl: string) => {
+    setImagesToDelete(prev => [...prev, imageUrl]);
+  };
+
+  const handleUndoRemoveExistingImage = (imageUrl: string) => {
+    setImagesToDelete(prev => prev.filter(url => url !== imageUrl));
+  };
+
+  const handleImageClick = (imageUrl: string) => {
+    setSelectedImage(imageUrl);
   };
 
   return (
@@ -154,6 +181,54 @@ export default function PostManagement() {
           onChange={handleImageChange}
           ref={fileInputRef}
         />
+        {images.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {images.map((image, index) => (
+              <div key={index} className="relative">
+                <Image
+                  src={URL.createObjectURL(image)}
+                  alt={`New image ${index + 1}`}
+                  width={100}
+                  height={100}
+                  className="object-cover rounded"
+                />
+                <Button
+                  type="button"
+                  onClick={() => handleRemoveImage(index)}
+                  className="absolute top-0 right-0 p-1 bg-red-500 text-white rounded-full"
+                  size="sm"
+                >
+                  X
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+        {editingPost && editingPost.images && (
+          <div className="flex flex-wrap gap-2">
+            {editingPost.images.map((imageUrl, index) => (
+              <div key={index} className="relative">
+                <Image
+                  src={imageUrl}
+                  alt={`Existing image ${index + 1}`}
+                  width={100}
+                  height={100}
+                  className={`object-cover rounded ${imagesToDelete.includes(imageUrl) ? 'opacity-50' : ''}`}
+                />
+                <Button
+                  type="button"
+                  onClick={() => imagesToDelete.includes(imageUrl) 
+                    ? handleUndoRemoveExistingImage(imageUrl)
+                    : handleRemoveExistingImage(imageUrl)}
+                  className={`absolute top-0 right-0 p-1 ${imagesToDelete.includes(imageUrl) ? 'bg-green-500' : 'bg-red-500'} text-white rounded-full`}
+                  size="sm"
+                >
+                  {imagesToDelete.includes(imageUrl) ? 'Undo' : 'X'}
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
         <div className="flex space-x-2">
           <Button type="submit">{editingPost ? 'Update' : 'Create'} Post</Button>
           {editingPost && (
@@ -175,12 +250,27 @@ export default function PostManagement() {
               {post.images && post.images.length > 0 && (
                 <div className="mt-4 flex flex-wrap gap-2">
                   {post.images.map((image, index) => (
-                    <img
-                      key={index}
-                      src={image}
-                      alt={`Post image ${index + 1}`}
-                      className="w-24 h-24 object-cover rounded"
-                    />
+                    <Dialog key={index}>
+                      <DialogTrigger asChild>
+                        <Image
+                          src={image}
+                          alt={`Post image ${index + 1}`}
+                          width={100}
+                          height={100}
+                          className="object-cover rounded cursor-pointer"
+                          onClick={() => handleImageClick(image)}
+                        />
+                      </DialogTrigger>
+                      <DialogContent className="w-full max-w-4xl p-0">
+                        <Image
+                          src={image}
+                          alt={`Full size post image ${index + 1}`}
+                          width={800}
+                          height={600}
+                          className="w-full h-auto object-contain"
+                        />
+                      </DialogContent>
+                    </Dialog>
                   ))}
                 </div>
               )}

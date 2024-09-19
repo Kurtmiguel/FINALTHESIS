@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
-import { writeFile, mkdir } from 'fs/promises';
+import { writeFile, mkdir, unlink } from 'fs/promises';
 import path from 'path';
 
 export async function uploadImages(files: File[]): Promise<string[]> {
@@ -32,4 +32,17 @@ export async function uploadImages(files: File[]): Promise<string[]> {
   });
 
   return Promise.all(uploadPromises);
+}
+
+export async function deleteImage(imageUrl: string): Promise<void> {
+  const uploadDir = path.join(process.cwd(), 'public', 'uploads');
+  const filename = path.basename(imageUrl);
+  const filepath = path.join(uploadDir, filename);
+
+  try {
+    await unlink(filepath);
+  } catch (error) {
+    console.error('Error deleting file:', error);
+    throw error;
+  }
 }

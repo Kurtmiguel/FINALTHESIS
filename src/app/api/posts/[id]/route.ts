@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Post from '@/models/Posts';
-import { uploadImages } from '@/lib/uploadImages';
+import { uploadImages, deleteImage } from '@/lib/uploadImages';
 
 export async function GET(
   req: Request,
@@ -25,6 +25,7 @@ export async function PUT(
   const title = formData.get('title') as string;
   const content = formData.get('content') as string;
   const imageFiles = formData.getAll('images') as File[];
+  const imagesToDelete = JSON.parse(formData.get('imagesToDelete') as string || '[]') as string[];
 
   if (!title || !content) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -39,6 +40,15 @@ export async function PUT(
 
   let updatedImages = existingPost.images || [];
 
+  // Delete images
+  for (const imageUrl of imagesToDelete) {
+    if (typeof imageUrl === 'string') {
+      await deleteImage(imageUrl);
+      updatedImages = updatedImages.filter((url: string) => url !== imageUrl);
+    }
+  }
+
+  // Add new images
   if (imageFiles.length > 0) {
     const newImageUrls = await uploadImages(imageFiles);
     updatedImages = [...updatedImages, ...newImageUrls];
@@ -73,6 +83,15 @@ export async function DELETE(
     
     if (!deletedPost) {
       return NextResponse.json({ error: 'Post not found' }, { status: 404 });
+    }
+
+    // Delete associated images
+    if (deletedPost.images && Array.isArray(deletedPost.images)) {
+      for (const imageUrl of deletedPost.images) {
+        if (typeof imageUrl === 'string') {
+          await deleteImage(imageUrl);
+        }
+      }
     }
 
     return NextResponse.json({ message: 'Post deleted successfully' });
