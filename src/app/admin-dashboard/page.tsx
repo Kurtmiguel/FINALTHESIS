@@ -2,18 +2,19 @@ import React from 'react';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import AdminDashboardStats from '@/components/AdminDashboardStats';
-import OwnerList from '@/components/OwnerList';
 import { getUsersAndDogs, UserData } from '@/lib/adminUtils';
+import RecordList from '@/components/RecordList';
 
 export default async function AdminDashboardPage() {
   const session = await getServerSession(authOptions);
-  const { users, dogsWithCollars, dogsWithoutCollars } = await getUsersAndDogs();
+  const { users, dogs, dogsWithCollars, dogsWithoutCollars } = await getUsersAndDogs();
 
-  const owners = users.map((user: UserData) => ({
-    id: user._id.toString(),
-    name: user.fullName,
+  const owners: UserData[] = users.map((user: UserData) => ({
+    _id: user._id,
+    fullName: user.fullName,
     email: user.email,
-    contactNumber: user.contactNumber
+    contactNumber: user.contactNumber,
+    address: user.address
   }));
 
   return (
@@ -27,7 +28,7 @@ export default async function AdminDashboardPage() {
         dogsWithoutCollars={dogsWithoutCollars}
       />
       
-      <OwnerList owners={owners} />
+      <RecordList owners={owners} dogs={dogs} />
     </div>
   );
 }

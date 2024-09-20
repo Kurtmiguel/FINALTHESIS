@@ -1,6 +1,18 @@
-import mongoose from 'mongoose';
+import mongoose, { Document, Model, Types } from 'mongoose';
 
-const dogSchema = new mongoose.Schema({
+export interface IDog extends Document {
+  _id: Types.ObjectId;
+  name: string;
+  gender: 'male' | 'female';
+  age: number;
+  breed: string;
+  birthday: Date;
+  imageUrl?: string;
+  collarActivated: boolean;
+  owner: Types.ObjectId;
+}
+
+const DogSchema = new mongoose.Schema({
   name: { type: String, required: true },
   gender: { type: String, enum: ['male', 'female'], required: true },
   age: { type: Number, required: true },
@@ -8,11 +20,9 @@ const dogSchema = new mongoose.Schema({
   birthday: { type: Date, required: true },
   imageUrl: { type: String },
   collarActivated: { type: Boolean, default: false },
-  owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
-}, {
-  timestamps: true
-});
+  owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }
+}, { timestamps: true });
 
-const Dog = mongoose.models.Dog || mongoose.model('Dog', dogSchema);
+const Dog: Model<IDog> = mongoose.models.Dog || mongoose.model<IDog>('Dog', DogSchema);
 
 export default Dog;
