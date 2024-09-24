@@ -2,19 +2,30 @@ import React from 'react';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import AdminDashboardStats from '@/components/AdminDashboardStats';
-import { getUsersAndDogs, UserData } from '@/lib/adminUtils';
+import { getUsersAndDogs, UserData, DogData } from '@/lib/adminUtils';
 import RecordList from '@/components/RecordList';
 
 export default async function AdminDashboardPage() {
   const session = await getServerSession(authOptions);
   const { users, dogs, dogsWithCollars, dogsWithoutCollars } = await getUsersAndDogs();
 
-  const owners: UserData[] = users.map((user: UserData) => ({
-    _id: user._id,
+  console.log("Fetched users:", users);
+  console.log("Fetched dogs:", dogs);
+
+  const owners: UserData[] = users.map((user: any) => ({
+    _id: user._id.toString(),
     fullName: user.fullName,
     email: user.email,
     contactNumber: user.contactNumber,
     address: user.address
+  }));
+
+  const formattedDogs: DogData[] = dogs.map((dog: any) => ({
+    _id: dog._id.toString(),
+    name: dog.name,
+    breed: dog.breed,
+    owner: dog.owner.toString(),
+    collarActivated: dog.collarActivated
   }));
 
   return (
@@ -28,7 +39,7 @@ export default async function AdminDashboardPage() {
         dogsWithoutCollars={dogsWithoutCollars}
       />
       
-      <RecordList owners={owners} dogs={dogs} />
+      <RecordList initialOwners={owners} initialDogs={formattedDogs} />
     </div>
   );
 }
