@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPS Tracker Display</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+    <style>
+        #map {
+            height: 500px;
+            width: 100%;
+            margin-top: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .map-controls {
+            margin-top: 10px;
+        }
+        .zoom-control {
+            margin: 5px 0;
+        }
+        .gps-item {
+            cursor: pointer;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            transition: background-color 0.2s;
+            border-left: 4px solid transparent;
+        }
+        .gps-item:hover {
+            background-color: #f8f9fa;
+        }
+        .active-location {
+            background-color: #e2f3ff !important;
+            border-left: 4px solid #007bff;
+        }
+        .custom-popup .leaflet-popup-content-wrapper {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 3px 14px rgba(0,0,0,0.3);
+            padding: 5px;
+        }
+        .custom-popup .leaflet-popup-content {
+            margin: 10px;
+            min-width: 200px;
+        }
+        .location-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+        #gps-list {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container my-4">
+        <h1 class="mb-4">GPS Tracker Data</h1>
+        
+        <div class="row">
+            <div class="col-md-8">
+                <div id="map-container" class="card mb-4">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">Location Map</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="map"></div>
+                        <div class="mt-3 map-controls">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="zoom-control">
+                                        <label for="zoom-level" class="form-label">Zoom Level: <span id="zoom-value">2</span></label>
+                                        <div class="btn-group w-100" role="group" aria-label="Zoom controls">
+                                            <button type="button" class="btn btn-outline-primary" data-zoom="1">Zoom 1</button>
+                                            <button type="button" class="btn btn-primary active" data-zoom="2">Zoom 2</button>
+                                            <button type="button" class="btn btn-outline-primary" data-zoom="3">Zoom 3</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 text-end">
+                                    <button id="reset-map" class="btn btn-outline-secondary btn-sm">Reset View</button>
+                                    <button id="show-path" class="btn btn-outline-info btn-sm ms-2">Show Path</button>
+                                </div>
+                            </div>
+                            <p id="selected-location-info" class="mt-2">Select a location to see details</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">Location History</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div id="gps-list" class="list-group">
+                            <div class="d-flex justify-content-center p-4">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header bg-secondary text-white">
+                <h5 class="mb-0">Legend</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-2">
+                    <span class="location-indicator" style="background-color: #4285F4;"></span>
+                    <span>Most recent location</span>
+                </div>
+                <div class="d-flex align-items-center mb-2">
+                    <span class="location-indicator" style="background-color: #FF5722;"></span>
+                    <span>Second most recent</span>
+                </div>
+                <div class="d-flex align-items-center mb-2">
+                    <span class="location-indicator" style="background-color: #FFC107;"></span>
+                    <span>Third most recent</span>
+                </div>
+                <div class="d-flex align-items-center">
+                    <span class="location-indicator" style="background-color: #757575;"></span>
+                    <span>Older locations</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    
+    <!-- Include Firebase SDK -->
+    <script type="module">
+        // Import Firebase functions
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+        import { getFirestore, collection, query, orderBy, limit, getDocs, onSnapshot } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCcwfVWOsPELOyYduYiZ58C7bSULg3T768",
+            authDomain: "bcms-3f035.firebaseapp.com",
+            projectId: "bcms-3f035",
+            storageBucket: "bcms-3f035.firebaseapp.com",
+            messagingSenderId: "514152236762",
+            appId: "1:514152236762:web:ad171aa924a293c7b5c7e3"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        
+        let map;
+        let markers = [];
+        let currentPopup = null;
+        let path = null;
+        let pathVisible = true;
+        
+        // Define location colors
+        const LOCATION_COLORS = [
+            '#4285F4', // Most recent - blue
+            '#FF5722', // Second most recent - orange
+            '#FFC107', // Third most recent - yellow
+            '#8BC34A', // Fourth - light green
+            '#009688', // Fifth - teal
+            '#673AB7', // Sixth - purple
+            '#E91E63', // Seventh - pink
+            '#795548', // Eighth - brown
+            '#607D8B', // Ninth - blue grey
+            '#9E9E9E'  // Tenth - grey
+        ];
+        
+        // Default color for older locations
+        const DEFAULT_COLOR = '#757575';
+        
+        // Function to format timestamp
+        function formatTimestamp(timestamp) {
+            const date = new Date(timestamp);
+            return date.toLocaleString();
+        }
+        
+        // Initialize Leaflet map
+        function initMap() {
+            try {
+                // Create the map
+                map = L.map('map', {
+                    zoomControl: false,  // Disable the default zoom control
+                    zoom: 19,            // Set default zoom to level 19 (Zoom 2)
+                    minZoom: 18,         // Restrict zoom levels
+                    maxZoom: 20          // Restrict zoom levels
+                }).setView([0, 0], 19);
+                
+                // Add OpenStreetMap tile layer
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                    minZoom: 18,
+                    maxZoom: 20
+                }).addTo(map);
+                
+                // Add event listener for zoom changes
+                map.on('zoomend', function() {
+                    const currentZoom = map.getZoom();
+                    const zoomButtonLevel = currentZoom === 18 ? 1 : currentZoom === 19 ? 2 : 3;
+                    
+                    // Update zoom display value
+                    document.getElementById('zoom-value').textContent = zoomButtonLevel;
+                    
+                    // Update active button
+                    document.querySelectorAll('.btn-group button').forEach(btn => {
+                        const btnZoom = parseInt(btn.getAttribute('data-zoom'));
+                        if (btnZoom === zoomButtonLevel) {
+                            btn.classList.remove('btn-outline-primary');
+                            btn.classList.add('active', 'btn-primary');
+                        } else {
+                            btn.classList.remove('active', 'btn-primary');
+                            btn.classList.add('btn-outline-primary');
+                        }
+                    });
+                });
+                
+                console.log("Map initialized successfully");
+            } catch (error) {
+                console.error("Error initializing map:", error);
+                document.getElementById('map').innerHTML = '<div class="alert alert-danger">Error loading Leaflet map.</div>';
+            }
+        }
+        
+        // Function to get marker color based on index
+        function getMarkerColor(index) {
+            return index < LOCATION_COLORS.length ? LOCATION_COLORS[index] : DEFAULT_COLOR;
+        }
+        
+        // Function to create a custom marker
+        function createCustomMarker(latlng, index) {
+            const markerSize = index < 3 ? 12 : 8;
+            const markerColor = getMarkerColor(index);
+            
+            return L.circleMarker(latlng, {
+                radius: markerSize,
+                fillColor: markerColor,
+                color: "#FFFFFF",
+                weight: 1,
+                opacity: 1,
+                fillOpacity: 0.9
+            });
+        }
+        
+        // Function to load map with all locations
+        function loadAllLocationsOnMap(locations) {
+            // Clear existing markers
+            markers.forEach(marker => map.removeLayer(marker));
+            markers = [];
+            
+            // Remove existing path if it exists
+            if (path) {
+                map.removeLayer(path);
+                path = null;
+            }
+            
+            if (locations.length === 0) {
+                document.getElementById('selected-location-info').innerHTML = 
+                    `<div class="alert alert-info">No location data available</div>`;
+                return;
+            }
+            
+            const points = [];
+            
+            // Add markers for each location
+            locations.forEach((location, index) => {
+                const latlng = [location.latitude, location.longitude];
+                points.push(latlng);
+                
+                // Create custom marker with color based on how recent it is
+                const marker = createCustomMarker(latlng, index);
+                
+                // Store the index for reference
+                marker.locationIndex = index;
+                
+                // Create popup content with matching color indicator
+                const markerColor = getMarkerColor(index);
+                const popupContent = `
+                    <div class="custom-popup">
+                        <h6 style="margin-bottom: 8px; color: ${markerColor};">
+                            <span class="location-indicator" style="background-color: ${markerColor};"></span>
+                            Location ${index + 1}
+                        </h6>
+                        <p style="margin-bottom: 5px;"><strong>Device ID:</strong> ${location.device_id || 'Unknown'}</p>
+                        <p style="margin-bottom: 5px;"><strong>Latitude:</strong> ${location.latitude.toFixed(6)}</p>
+                        <p style="margin-bottom: 5px;"><strong>Longitude:</strong> ${location.longitude.toFixed(6)}</p>
+                        <p style="margin-bottom: 5px;"><strong>Time:</strong> ${formatTimestamp(location.timestamp)}</p>
+                        ${index === 0 ? '<p style="color: #4285F4;"><strong>Most recent location</strong></p>' : ''}
+                    </div>
+                `;
+                
+                // Add popup to marker
+                marker.bindPopup(popupContent);
+                
+                // Add event listeners
+                marker.on('click', () => {
+                    // Highlight corresponding item in the list
+                    document.querySelectorAll('.gps-item').forEach(item => {
+                        item.classList.remove('active-location');
+                    });
+                    
+                    const listItems = document.querySelectorAll('.gps-item');
+                    if (listItems[index]) {
+                        listItems[index].classList.add('active-location');
+                        // Scroll to the selected item in the list
+                        listItems[index].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }
+                    
+                    // Update selected location info
+                    document.getElementById('selected-location-info').innerHTML = `
+                        <div class="card bg-light">
+                            <div class="card-body p-2">
+                                <div class="d-flex align-items-center">
+                                    <span class="location-indicator" style="background-color: ${markerColor};"></span>
+                                    <strong>Selected Location ${index + 1}:</strong>
+                                </div>
+                                Latitude: ${location.latitude.toFixed(6)}, 
+                                Longitude: ${location.longitude.toFixed(6)}<br>
+                                Time: ${formatTimestamp(location.timestamp)}
+                            </div>
+                        </div>
+                    `;
+                    
+                    currentPopup = marker.getPopup();
+                });
+                
+                // Add marker to map
+                marker.addTo(map);
+                
+                // Add marker to array
+                markers.push(marker);
+            });
+            
+            // Create a polyline connecting all points (from oldest to newest)
+            if (points.length > 1) {
+                // Reverse the points array to go from oldest to newest
+                const pathPoints = [...points].reverse();
+                path = L.polyline(pathPoints, {
+                    color: '#3388ff',
+                    weight: 3,
+                    opacity: 0.7,
+                    dashArray: '5, 5',
+                    lineJoin: 'round'
+                }).addTo(map);
+                
+                // Set path visibility based on toggle
+                if (!pathVisible) {
+                    map.removeLayer(path);
+                }
+            }
+            
+            // Fit map to show all markers
+            if (points.length > 0) {
+                const bounds = L.latLngBounds(points);
+                map.fitBounds(bounds, { padding: [50, 50] });
+                
+                // If there's only one marker, set to default zoom (19)
+                if (locations.length === 1) {
+                    map.setZoom(19);
+                }
+            }
+            
+            // Update zoom slider
+            const currentZoom = map.getZoom();
+            document.getElementById('zoom-value').textContent = currentZoom === 18 ? 1 : currentZoom === 19 ? 2 : 3;
+            
+            // Automatically select the first (most recent) location
+            if (markers.length > 0) {
+                // Use setTimeout to ensure the map is fully loaded
+                setTimeout(() => {
+                    markers[0].openPopup();
+                    markers[0].fire('click');
+                }, 300);
+            }
+        }
+        
+        // Function to display a single location on the map
+        function displayOnMap(location, index) {
+            // Center map on the location
+            const latlng = [location.latitude, location.longitude];
+            map.setView(latlng, map.getZoom());
+            
+            // Find and open the corresponding marker's popup
+            if (markers[index]) {
+                markers[index].openPopup();
+                
+                // Update selected location info with the proper color
+                const markerColor = getMarkerColor(index);
+                document.getElementById('selected-location-info').innerHTML = `
+                    <div class="card bg-light">
+                        <div class="card-body p-2">
+                            <div class="d-flex align-items-center">
+                                <span class="location-indicator" style="background-color: ${markerColor};"></span>
+                                <strong>Selected Location ${index + 1}:</strong>
+                            </div>
+                            Latitude: ${location.latitude.toFixed(6)}, 
+                            Longitude: ${location.longitude.toFixed(6)}<br>
+                            Time: ${formatTimestamp(location.timestamp)}
+                        </div>
+                    </div>
+                `;
+            }
+        }
+        
+        // Function to create GPS item
+        function createGPSItem(data, index) {
+            const item = document.createElement('div');
+            item.className = 'gps-item border-bottom';
+            
+            // Get color based on index
+            const markerColor = getMarkerColor(index);
+            
+            // Additional class for first item
+            if (index === 0) {
+                item.classList.add('most-recent');
+            }
+            
+            item.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-0">
+                            <span class="location-indicator" style="background-color: ${markerColor};"></span>
+                            Location ${index + 1}
+                        </h6>
+                        <small>Lat: ${data.latitude.toFixed(6)}, Lng: ${data.longitude.toFixed(6)}</small>
+                    </div>
+                    <small class="text-muted">${formatTimestamp(data.timestamp)}</small>
+                </div>
+            `;
+            
+            // Add click event to show on map
+            item.addEventListener('click', () => {
+                // Remove active class from all items
+                document.querySelectorAll('.gps-item').forEach(item => {
+                    item.classList.remove('active-location');
+                });
+                
+                // Add active class to clicked item
+                item.classList.add('active-location');
+                
+                // Display on map
+                displayOnMap(data, index);
+            });
+            
+            return item;
+        }
+        
+        // Function to fetch recent GPS data
+        async function fetchRecentGPSData() {
+            try {
+                const gpsList = document.getElementById('gps-list');
+                gpsList.innerHTML = ''; // Clear loading spinner
+                
+                // Create a query to get the 10 most recent entries (increased from 5)
+                const q = query(
+                    collection(db, "dogs-tracker"),
+                    orderBy("timestamp", "desc"),
+                    limit(10)
+                );
+                
+                // Real-time listener for updates
+                onSnapshot(q, (querySnapshot) => {
+                    gpsList.innerHTML = ''; // Clear existing items
+                    
+                    if (querySnapshot.empty) {
+                        gpsList.innerHTML = '<p class="text-center my-3">No location data available</p>';
+                        return;
+                    }
+                    
+                    const locations = [];
+                    
+                    // Add each document to the list
+                    querySnapshot.forEach((doc) => {
+                        const data = doc.data();
+                        locations.push(data);
+                    });
+                    
+                    // Build list items with index for coloring
+                    locations.forEach((data, index) => {
+                        const item = createGPSItem(data, index);
+                        gpsList.appendChild(item);
+                    });
+                    
+                    // Show all locations on the map
+                    loadAllLocationsOnMap(locations);
+                });
+            } catch (error) {
+                console.error("Error fetching GPS data:", error);
+                document.getElementById('gps-list').innerHTML = 
+                    `<p class="text-center text-danger my-3">Error loading data: ${error.message}</p>`;
+            }
+        }
+        
+        // Toggle path visibility
+        function togglePath() {
+            pathVisible = !pathVisible;
+            
+            if (path) {
+                if (pathVisible) {
+                    path.addTo(map);
+                    document.getElementById('show-path').textContent = 'Hide Path';
+                    document.getElementById('show-path').classList.remove('btn-outline-info');
+                    document.getElementById('show-path').classList.add('btn-info');
+                } else {
+                    map.removeLayer(path);
+                    document.getElementById('show-path').textContent = 'Show Path';
+                    document.getElementById('show-path').classList.remove('btn-info');
+                    document.getElementById('show-path').classList.add('btn-outline-info');
+                }
+            }
+        }
+        
+        // Initialize when the page loads
+        window.addEventListener('load', () => {
+            // Initialize map
+            initMap();
+            
+            // Fetch GPS data
+            fetchRecentGPSData();
+            
+            // Add event listeners for zoom buttons
+            document.querySelectorAll('.btn-group button').forEach(button => {
+                button.addEventListener('click', function() {
+                    // Remove active class from all buttons
+                    document.querySelectorAll('.btn-group button').forEach(btn => {
+                        btn.classList.remove('active', 'btn-primary');
+                        btn.classList.add('btn-outline-primary');
+                    });
+                    
+                    // Add active class to clicked button
+                    this.classList.remove('btn-outline-primary');
+                    this.classList.add('active', 'btn-primary');
+                    
+                    // Get zoom level from button data
+                    const zoomButtonLevel = parseInt(this.getAttribute('data-zoom'));
+                    const actualZoomLevel = zoomButtonLevel === 1 ? 18 : zoomButtonLevel === 2 ? 19 : 20;
+                    
+                    // Update zoom value display
+                    document.getElementById('zoom-value').textContent = zoomButtonLevel;
+                    
+                    // Set map zoom
+                    if (map) {
+                        map.setZoom(actualZoomLevel);
+                    }
+                });
+            });
+            
+            // Add event listener for reset button
+            document.getElementById('reset-map').addEventListener('click', function() {
+                if (map && markers.length > 0) {
+                    const points = markers.map(marker => marker.getLatLng());
+                    const bounds = L.latLngBounds(points);
+                    map.fitBounds(bounds, { padding: [50, 50] });
+                    
+                    // After fitting bounds, set back to zoom level 2 (19)
+                    setTimeout(() => {
+                        map.setZoom(19);
+                        
+                        // Update buttons to show zoom level 2 as active
+                        document.querySelectorAll('.btn-group button').forEach(btn => {
+                            const btnZoom = parseInt(btn.getAttribute('data-zoom'));
+                            if (btnZoom === 2) {
+                                btn.classList.remove('btn-outline-primary');
+                                btn.classList.add('active', 'btn-primary');
+                            } else {
+                                btn.classList.remove('active', 'btn-primary');
+                                btn.classList.add('btn-outline-primary');
+                            }
+                        });
+                        
+                        document.getElementById('zoom-value').textContent = '2';
+                    }, 300);
+                }
+            });
+            
+            // Add event listener for path toggle button
+            document.getElementById('show-path').addEventListener('click', togglePath);
+            document.getElementById('show-path').textContent = 'Hide Path';
+            document.getElementById('show-path').classList.add('btn-info');
+            document.getElementById('show-path').classList.remove('btn-outline-info');
+        });
+    </script>
+</body>
+</html>
