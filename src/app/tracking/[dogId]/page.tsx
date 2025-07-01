@@ -7,7 +7,7 @@ import { TrackingData } from '@/types/tracking'
 import GPSMap from '@/components/GPSMap'
 import BatteryStatus from '@/components/BatteryStatus'
 import DeviceStatus from '@/components/DeviceStatus'
-import { RefreshCw, AlertTriangle, ArrowLeft, Dog } from 'lucide-react'
+import { RefreshCw, AlertTriangle, ArrowLeft, Dog, Bug } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -34,6 +34,8 @@ export default function DogTrackingPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null)
+  const [debugInfo, setDebugInfo] = useState<any>(null)
+  const [showDebug, setShowDebug] = useState(false)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -45,6 +47,7 @@ export default function DogTrackingPage() {
 
   useEffect(() => {
     if (dogInfo?.deviceInfo?.deviceId) {
+      console.log('🔍 [DEBUG] Starting tracking data fetch for device:', dogInfo.deviceInfo.deviceId)
       fetchLatestTrackingData()
       
       // Set up polling every 5 seconds
@@ -55,37 +58,54 @@ export default function DogTrackingPage() {
 
   const fetchDogInfo = async () => {
     try {
+      console.log('🔍 [DEBUG] Fetching dog info for ID:', params.dogId)
       const response = await fetch(`/api/dogs/${params.dogId}`)
       if (!response.ok) {
         throw new Error('Failed to fetch dog information')
       }
       
       const dog = await response.json()
+      console.log('🐕 [DEBUG] Dog info received:', dog)
       setDogInfo(dog)
       setError(null)
     } catch (err) {
+      console.error('❌ [DEBUG] Error fetching dog info:', err)
       setError('Failed to load dog information')
-      console.error('Error fetching dog info:', err)
     }
   }
 
   const fetchLatestTrackingData = async () => {
-    if (!dogInfo?.deviceInfo?.deviceId) return
+    if (!dogInfo?.deviceInfo?.deviceId) {
+      console.log('⚠️ [DEBUG] No device ID available')
+      return
+    }
 
     try {
-      const response = await fetch(`/api/tracking-data?latest=true&deviceId=${dogInfo.deviceInfo.deviceId}`)
+      const deviceId = dogInfo.deviceInfo.deviceId
+      const apiUrl = `/api/tracking-data?latest=true&deviceId=${deviceId}`
+      
+      console.log('🔍 [DEBUG] Fetching tracking data from:', apiUrl)
+      console.log('📱 [DEBUG] Device ID:', deviceId)
+      
+      const response = await fetch(apiUrl)
       const result = await response.json()
 
+      console.log('📡 [DEBUG] API Response:', result)
+      setDebugInfo(result.debug || null)
+
       if (result.success && result.data) {
+        console.log('✅ [DEBUG] Tracking data received:', result.data)
         setTrackingData(result.data)
         setLastUpdate(new Date())
         setError(null)
       } else {
+        console.log('⚠️ [DEBUG] No tracking data in response')
         setError('No tracking data available for this device')
+        setTrackingData(undefined)
       }
     } catch (err) {
+      console.error('❌ [DEBUG] Error fetching tracking data:', err)
       setError('Failed to fetch tracking data')
-      console.error('Error fetching tracking data:', err)
     } finally {
       setIsLoading(false)
     }
@@ -102,6 +122,10 @@ export default function DogTrackingPage() {
 
   const handleBackToDashboard = () => {
     router.push('/dashboard/monitoring')
+  }
+
+  const toggleDebug = () => {
+    setShowDebug(!showDebug)
   }
 
   if (status === 'loading') {
@@ -180,6 +204,15 @@ export default function DogTrackingPage() {
                 Live Tracking
               </Badge>
               <Button
+                onClick={toggleDebug}
+                variant="outline"
+                size="sm"
+                className="flex items-center space-x-2"
+              >
+                <Bug className="w-4 h-4" />
+                <span>Debug</span>
+              </Button>
+              <Button
                 onClick={handleRefresh}
                 disabled={isLoading}
                 size="sm"
@@ -197,6 +230,35 @@ export default function DogTrackingPage() {
             </div>
           )}
         </div>
+
+        {/* Debug Panel */}
+        {showDebug && (
+          <div className="bg-gray-900 text-green-400 rounded-lg p-4 mb-6 font-mono text-sm">
+            <h3 className="text-white font-bold mb-3">🔍 Debug Information</h3>
+            <div className="space-y-2">
+              <div><strong>Dog ID:</strong> {params.dogId}</div>
+              <div><strong>Device ID:</strong> {dogInfo?.deviceInfo?.deviceId || 'Not assigned'}</div>
+              <div><strong>Has Tracking Data:</strong> {trackingData ? 'YES' : 'NO'}</div>
+              <div><strong>GPS Valid:</strong> {trackingData?.gpsValid ? 'YES' : 'NO'}</div>
+              {debugInfo && (
+                <div>
+                  <strong>API Debug:</strong>
+                  <pre className="mt-2 bg-gray-800 p-2 rounded text-xs overflow-auto">
+                    {JSON.stringify(debugInfo, null, 2)}
+                  </pre>
+                </div>
+              )}
+              {trackingData && (
+                <div>
+                  <strong>Tracking Data:</strong>
+                  <pre className="mt-2 bg-gray-800 p-2 rounded text-xs overflow-auto">
+                    {JSON.stringify(trackingData, null, 2)}
+                  </pre>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
@@ -254,7 +316,10 @@ export default function DogTrackingPage() {
                 <CardTitle>Device Status</CardTitle>
               </CardHeader>
               <CardContent>
-                <DeviceStatus trackingData={trackingData} />
+                <DeviceStatus 
+                  trackingData={trackingData} 
+                  deviceInfo={dogInfo?.deviceInfo}
+                />
               </CardContent>
             </Card>
           </div>
