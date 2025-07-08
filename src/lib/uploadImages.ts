@@ -17,13 +17,13 @@ export async function uploadImages(files: File[]): Promise<string[]> {
 
   const uploadPromises = files.map(async (file) => {
     const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
+    const uint8Array = new Uint8Array(bytes);
 
     const filename = uuidv4() + path.extname(file.name);
     const filepath = path.join(uploadDir, filename);
 
     try {
-      await writeFile(filepath, buffer);
+      await writeFile(filepath, uint8Array);
       return `/uploads/${filename}`;
     } catch (error) {
       console.error('Error writing file:', error);

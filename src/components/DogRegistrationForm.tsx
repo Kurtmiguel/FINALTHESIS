@@ -8,12 +8,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 
 interface DogRegistrationFormProps {
-  onSubmit: (data: NewDogData | UpdateDogData) => void;
+  onSubmit: (data: NewDogData) => void;
   initialData?: Partial<NewDogData>;
   isEditMode?: boolean;
+  isLoading?: boolean;
 }
 
-const DogRegistrationForm: React.FC<DogRegistrationFormProps> = ({ onSubmit, initialData, isEditMode = false }) => {
+const DogRegistrationForm: React.FC<DogRegistrationFormProps> = ({ 
+  onSubmit, 
+  initialData, 
+  isEditMode = false,
+  isLoading = false
+}) => {
   const form = useForm<NewDogData>({
     resolver: zodResolver(dogSchema),
     defaultValues: {
@@ -24,6 +30,7 @@ const DogRegistrationForm: React.FC<DogRegistrationFormProps> = ({ onSubmit, ini
       birthday: initialData?.birthday || "",
       imageUrl: initialData?.imageUrl || "",
       collarActivated: initialData?.collarActivated || false,
+      assignedDevice: initialData?.assignedDevice || undefined,
     },
   });
 
@@ -42,7 +49,11 @@ const DogRegistrationForm: React.FC<DogRegistrationFormProps> = ({ onSubmit, ini
             <FormItem>
               <FormLabel>Name</FormLabel>
               <FormControl>
-                <Input placeholder="Dog's name" {...field} />
+                <Input 
+                  placeholder="Dog's name" 
+                  {...field} 
+                  disabled={isLoading}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -54,7 +65,11 @@ const DogRegistrationForm: React.FC<DogRegistrationFormProps> = ({ onSubmit, ini
           render={({ field }) => (
             <FormItem>
               <FormLabel>Gender</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select 
+                onValueChange={field.onChange} 
+                defaultValue={field.value}
+                disabled={isLoading}
+              >
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select gender" />
@@ -76,7 +91,11 @@ const DogRegistrationForm: React.FC<DogRegistrationFormProps> = ({ onSubmit, ini
             <FormItem>
               <FormLabel>Breed</FormLabel>
               <FormControl>
-                <Input placeholder="Dog's breed" {...field} />
+                <Input 
+                  placeholder="Dog's breed" 
+                  {...field} 
+                  disabled={isLoading}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -89,7 +108,13 @@ const DogRegistrationForm: React.FC<DogRegistrationFormProps> = ({ onSubmit, ini
             <FormItem>
               <FormLabel>Age</FormLabel>
               <FormControl>
-                <Input type="number" placeholder="Dog's age" {...field} onChange={e => field.onChange(parseInt(e.target.value))} />
+                <Input 
+                  type="number" 
+                  placeholder="Dog's age" 
+                  {...field} 
+                  onChange={e => field.onChange(parseInt(e.target.value))} 
+                  disabled={isLoading}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -102,7 +127,11 @@ const DogRegistrationForm: React.FC<DogRegistrationFormProps> = ({ onSubmit, ini
             <FormItem>
               <FormLabel>Birthday</FormLabel>
               <FormControl>
-                <Input type="date" {...field} />
+                <Input 
+                  type="date" 
+                  {...field} 
+                  disabled={isLoading}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -118,6 +147,7 @@ const DogRegistrationForm: React.FC<DogRegistrationFormProps> = ({ onSubmit, ini
                 <Input 
                   type="file" 
                   accept=".jpg,.png,.webp"
+                  disabled={isLoading}
                   onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) {
@@ -134,7 +164,16 @@ const DogRegistrationForm: React.FC<DogRegistrationFormProps> = ({ onSubmit, ini
             </FormItem>
           )}
         />
-        <Button type="submit">{isEditMode ? 'Update' : 'Submit'}</Button>
+        <Button type="submit" disabled={isLoading}>
+          {isLoading ? (
+            <>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+              {isEditMode ? 'Updating...' : 'Creating...'}
+            </>
+          ) : (
+            isEditMode ? 'Update' : 'Submit'
+          )}
+        </Button>
       </form>
     </Form>
   );
