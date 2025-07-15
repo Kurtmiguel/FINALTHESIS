@@ -1,15 +1,18 @@
-// app/tracking/[dogId]/page.tsx - Enhanced with History Feature
+// app/tracking/[dogId]/page.tsx - Fixed TypeScript Issues
 'use client'
 
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { TrackingData } from '@/types/tracking'
+import GPSMapWithGeofence from '@/components/GPSMapWithGeofence'
 import GPSMapWithHistory from '@/components/GPSMapWithHistory'
 import BatteryStatus from '@/components/BatteryStatus'
 import DeviceStatus from '@/components/DeviceStatus'
 import TimeRangeSelector from '@/components/TimeRangeSelector'
-import { RefreshCw, AlertTriangle, ArrowLeft, Dog, Bug, History, Radio, BarChart3, MapPin, Clock } from 'lucide-react'
+import GeofenceSetup from '@/components/GeofenceSetup'
+import NotificationCenter from '@/components/NotificationCenter'
+import { RefreshCw, AlertTriangle, ArrowLeft, Dog, Bug, History, Radio, BarChart3, MapPin, Clock, Shield, ShieldCheck, ShieldX } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -25,6 +28,24 @@ interface DogInfo {
     deviceId: string;
     name: string;
   };
+}
+
+// Fixed: Consistent GeofenceData interface
+interface GeofenceData {
+  _id: string;
+  name: string;
+  centerLatitude: number;
+  centerLongitude: number;
+  radius: number;
+  geofenceType: 'indoor' | 'outdoor';
+  isActive: boolean;
+  deviceId: string;
+  dogId: string;
+  dogName: string;
+  alertsEnabled: boolean;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface HistoricalPoint {
@@ -67,12 +88,17 @@ export default function DogTrackingPage() {
   const [showDebug, setShowDebug] = useState(false)
   
   // History state
-  const [activeTab, setActiveTab] = useState<'live' | 'history'>('live')
+  const [activeTab, setActiveTab] = useState<'live' | 'history' | 'geofence'>('live')
   const [historicalData, setHistoricalData] = useState<HistoricalPoint[]>([])
   const [historyResponse, setHistoryResponse] = useState<HistoryResponse | null>(null)
   const [isLoadingHistory, setIsLoadingHistory] = useState(false)
   const [historyError, setHistoryError] = useState<string | null>(null)
   const [selectedTimeRange, setSelectedTimeRange] = useState('today')
+
+  // Geofencing state
+  const [geofences, setGeofences] = useState<GeofenceData[]>([])
+  const [isLoadingGeofences, setIsLoadingGeofences] = useState(false)
+  const [geofenceError, setGeofenceError] = useState<string | null>(null)
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -83,13 +109,17 @@ export default function DogTrackingPage() {
   }, [status, params.dogId, router])
 
   useEffect(() => {
-    if (dogInfo?.deviceInfo?.deviceId && activeTab === 'live') {
-      console.log('🔍 [DEBUG] Starting live tracking for device:', dogInfo.deviceInfo.deviceId)
-      fetchLatestTrackingData()
-      
-      // Set up polling every 5 seconds for live data
-      const interval = setInterval(fetchLatestTrackingData, 5000)
-      return () => clearInterval(interval)
+    if (dogInfo?.deviceInfo?.deviceId) {
+      if (activeTab === 'live') {
+        console.log('🔍 [DEBUG] Starting live tracking for device:', dogInfo.deviceInfo.deviceId)
+        fetchLatestTrackingData()
+        
+        // Set up polling every 5 seconds for live data
+        const interval = setInterval(fetchLatestTrackingData, 5000)
+        return () => clearInterval(interval)
+      } else if (activeTab === 'geofence') {
+        fetchGeofences()
+      }
     }
   }, [dogInfo, activeTab])
 
@@ -147,6 +177,44 @@ export default function DogTrackingPage() {
     }
   }
 
+  const fetchGeofences = async () => {
+    if (!dogInfo?.deviceInfo?.deviceId) {
+      console.log('⚠️ [DEBUG] No device ID available for geofences')
+      return
+    }
+
+    setIsLoadingGeofences(true)
+    setGeofenceError(null)
+
+    try {
+      const deviceId = dogInfo.deviceInfo.deviceId
+      const apiUrl = `/api/geofences?deviceId=${deviceId}`
+      
+      console.log('🔍 [DEBUG] Fetching geofences from:', apiUrl)
+      
+      const response = await fetch(apiUrl)
+      const result: GeofenceData[] = await response.json()
+
+      console.log('🛡️ [DEBUG] Geofences API Response:', result)
+
+      if (response.ok) {
+        console.log('✅ [DEBUG] Geofences received:', result.length, 'geofences')
+        setGeofences(result)
+        setGeofenceError(null)
+      } else {
+        console.log('⚠️ [DEBUG] Error fetching geofences:', (result as any).error)
+        setGeofenceError((result as any).error || 'Failed to fetch geofences')
+        setGeofences([])
+      }
+    } catch (err) {
+      console.error('❌ [DEBUG] Error fetching geofences:', err)
+      setGeofenceError('Failed to fetch geofences')
+      setGeofences([])
+    } finally {
+      setIsLoadingGeofences(false)
+    }
+  }
+
   const fetchHistoricalData = async (startDate: string, endDate: string) => {
     if (!dogInfo?.deviceInfo?.deviceId) {
       console.log('⚠️ [DEBUG] No device ID available for history')
@@ -194,7 +262,7 @@ export default function DogTrackingPage() {
     fetchHistoricalData(startDate, endDate)
   }
 
-  const handleTabChange = (tab: 'live' | 'history') => {
+  const handleTabChange = (tab: 'live' | 'history' | 'geofence') => {
     console.log('🔄 [DEBUG] Switching to tab:', tab)
     setActiveTab(tab)
     
@@ -205,6 +273,8 @@ export default function DogTrackingPage() {
       startOfDay.setHours(0, 0, 0, 0)
       
       fetchHistoricalData(startOfDay.toISOString(), today.toISOString())
+    } else if (tab === 'geofence' && dogInfo?.deviceInfo?.deviceId) {
+      fetchGeofences()
     }
   }
 
@@ -216,7 +286,7 @@ export default function DogTrackingPage() {
       } else {
         fetchDogInfo()
       }
-    } else {
+    } else if (activeTab === 'history') {
       // Refresh history data with current time range
       if (historyResponse) {
         const { start, end } = historyResponse.dateRange
@@ -224,6 +294,8 @@ export default function DogTrackingPage() {
           fetchHistoricalData(start, end)
         }
       }
+    } else if (activeTab === 'geofence') {
+      fetchGeofences()
     }
   }
 
@@ -233,6 +305,22 @@ export default function DogTrackingPage() {
 
   const toggleDebug = () => {
     setShowDebug(!showDebug)
+  }
+
+  // Fixed: Geofence event handlers with proper typing
+  const handleGeofenceCreated = (geofence: GeofenceData) => {
+    setGeofences([geofence])
+    console.log('✅ Geofence created:', geofence.name)
+  }
+
+  const handleGeofenceUpdated = (geofence: GeofenceData) => {
+    setGeofences(prev => prev.map(g => g._id === geofence._id ? geofence : g))
+    console.log('✅ Geofence updated:', geofence.name)
+  }
+
+  const handleGeofenceDeleted = (geofenceId: string) => {
+    setGeofences(prev => prev.filter(g => g._id !== geofenceId))
+    console.log('🗑️ Geofence deleted')
   }
 
   if (status === 'loading') {
@@ -307,6 +395,18 @@ export default function DogTrackingPage() {
             </div>
             
             <div className="flex items-center space-x-3">
+              {/* Geofence Status Badge */}
+              {geofences.length > 0 && geofences[0].isActive && (
+                <Badge 
+                  variant="default" 
+                  className="bg-blue-600 flex items-center space-x-1"
+                >
+                  <Shield className="w-3 h-3" />
+                  <span>Safe Zone Active</span>
+                </Badge>
+              )}
+
+              {/* Active Tab Badge */}
               <Badge 
                 variant={activeTab === 'live' ? 'default' : 'secondary'} 
                 className={activeTab === 'live' ? 'bg-green-600' : ''}
@@ -316,13 +416,27 @@ export default function DogTrackingPage() {
                     <Radio className="w-3 h-3 mr-1" />
                     Live Tracking
                   </>
-                ) : (
+                ) : activeTab === 'history' ? (
                   <>
                     <History className="w-3 h-3 mr-1" />
                     History View
                   </>
+                ) : (
+                  <>
+                    <Shield className="w-3 h-3 mr-1" />
+                    Geofence Setup
+                  </>
                 )}
               </Badge>
+
+              {/* Notification Center */}
+              {dogInfo?._id && (
+                <NotificationCenter 
+                  dogId={dogInfo._id}
+                  deviceId={dogInfo.deviceInfo?.deviceId}
+                />
+              )}
+
               <Button
                 onClick={toggleDebug}
                 variant="outline"
@@ -334,11 +448,11 @@ export default function DogTrackingPage() {
               </Button>
               <Button
                 onClick={handleRefresh}
-                disabled={isLoading || isLoadingHistory}
+                disabled={isLoading || isLoadingHistory || isLoadingGeofences}
                 size="sm"
                 className="flex items-center space-x-2"
               >
-                <RefreshCw className={`w-4 h-4 ${(isLoading || isLoadingHistory) ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`w-4 h-4 ${(isLoading || isLoadingHistory || isLoadingGeofences) ? 'animate-spin' : ''}`} />
                 <span>Refresh</span>
               </Button>
             </div>
@@ -361,6 +475,7 @@ export default function DogTrackingPage() {
               <div><strong>Active Tab:</strong> {activeTab}</div>
               <div><strong>Has Live Data:</strong> {trackingData ? 'YES' : 'NO'}</div>
               <div><strong>Has History Data:</strong> {historicalData.length > 0 ? `YES (${historicalData.length} points)` : 'NO'}</div>
+              <div><strong>Active Geofences:</strong> {geofences.filter(g => g.isActive).length}</div>
               {trackingData && (
                 <div><strong>GPS Valid:</strong> {trackingData?.gpsValid ? 'YES' : 'NO'}</div>
               )}
@@ -376,6 +491,7 @@ export default function DogTrackingPage() {
           </div>
         )}
 
+        {/* Error Messages */}
         {error && activeTab === 'live' && (
           <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
             <div className="flex items-center space-x-2">
@@ -396,6 +512,16 @@ export default function DogTrackingPage() {
           </div>
         )}
 
+        {geofenceError && activeTab === 'geofence' && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+            <div className="flex items-center space-x-2">
+              <AlertTriangle className="w-5 h-5 text-red-600" />
+              <span className="text-red-800 font-medium">Geofence Error</span>
+            </div>
+            <div className="text-red-700 mt-1">{geofenceError}</div>
+          </div>
+        )}
+
         {!dogInfo?.deviceInfo && !isLoading && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
             <div className="flex items-center space-x-2">
@@ -409,8 +535,8 @@ export default function DogTrackingPage() {
         )}
 
         {/* Main Content Tabs */}
-        <Tabs value={activeTab} onValueChange={(value) => handleTabChange(value as 'live' | 'history')}>
-          <TabsList className="grid w-full grid-cols-2 mb-6">
+        <Tabs value={activeTab} onValueChange={(value) => handleTabChange(value as 'live' | 'history' | 'geofence')}>
+          <TabsList className="grid w-full grid-cols-3 mb-6">
             <TabsTrigger value="live" className="flex items-center space-x-2">
               <Radio className="w-4 h-4" />
               <span>Live Tracking</span>
@@ -419,25 +545,39 @@ export default function DogTrackingPage() {
               <History className="w-4 h-4" />
               <span>History</span>
             </TabsTrigger>
+            <TabsTrigger value="geofence" className="flex items-center space-x-2">
+              <Shield className="w-4 h-4" />
+              <span>Safe Zone</span>
+            </TabsTrigger>
           </TabsList>
 
           {/* Live Tracking Tab */}
           <TabsContent value="live" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Live Map */}
+              {/* Live Map with Geofence */}
               <div className="lg:col-span-2">
                 <Card>
                   <CardHeader>
-                    <CardTitle className="flex items-center">
-                      <Radio className="w-5 h-5 mr-2 text-green-600" />
-                      {dogInfo?.name}'s Live Location
+                    <CardTitle className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <Radio className="w-5 h-5 mr-2 text-green-600" />
+                        {dogInfo?.name}'s Live Location
+                      </div>
+                      {geofences.length > 0 && geofences[0].isActive && (
+                        <Badge variant="outline" className="text-blue-600 border-blue-600">
+                          <Shield className="w-3 h-3 mr-1" />
+                          Safe Zone: {geofences[0].name}
+                        </Badge>
+                      )}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <GPSMapWithHistory 
+                    <GPSMapWithGeofence 
                       trackingData={trackingData} 
+                      geofences={geofences}
                       height="500px" 
                       showHistory={false}
+                      dogName={dogInfo?.name}
                     />
                   </CardContent>
                 </Card>
@@ -467,6 +607,42 @@ export default function DogTrackingPage() {
                     />
                   </CardContent>
                 </Card>
+
+                {/* Geofence Status */}
+                {geofences.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center">
+                        <Shield className="w-5 h-5 mr-2" />
+                        Safe Zone Status
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {geofences.map((geofence) => (
+                          <div key={geofence._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div>
+                              <div className="font-medium">{geofence.name}</div>
+                              <div className="text-sm text-gray-600">
+                                {geofence.geofenceType} • {geofence.radius}m radius
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-2">
+                              {geofence.isActive ? (
+                                <ShieldCheck className="w-5 h-5 text-green-600" />
+                              ) : (
+                                <ShieldX className="w-5 h-5 text-gray-400" />
+                              )}
+                              <Badge variant={geofence.isActive ? "default" : "secondary"}>
+                                {geofence.isActive ? 'Active' : 'Inactive'}
+                              </Badge>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
               </div>
             </div>
           </TabsContent>
@@ -474,7 +650,7 @@ export default function DogTrackingPage() {
           {/* History Tab */}
           <TabsContent value="history" className="space-y-6">
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-              {/* History Map */}
+              {/* History Map with Geofence */}
               <div className="lg:col-span-3">
                 <Card>
                   <CardHeader>
@@ -487,11 +663,13 @@ export default function DogTrackingPage() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <GPSMapWithHistory 
+                    <GPSMapWithGeofence 
                       historicalData={historicalData}
                       groupedByDate={historyResponse?.groupedByDate}
+                      geofences={geofences}
                       height="500px" 
                       showHistory={true}
+                      dogName={dogInfo?.name}
                     />
                   </CardContent>
                 </Card>
@@ -580,6 +758,50 @@ export default function DogTrackingPage() {
                     </CardContent>
                   </Card>
                 )}
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* Geofence Tab */}
+          <TabsContent value="geofence" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Geofence Setup */}
+              <div className="lg:col-span-1">
+                {dogInfo?._id && dogInfo?.deviceInfo?.deviceId && (
+                  <GeofenceSetup
+                    dogId={dogInfo._id}
+                    dogName={dogInfo.name}
+                    deviceId={dogInfo.deviceInfo.deviceId}
+                    trackingData={trackingData}
+                    onGeofenceCreated={handleGeofenceCreated}
+                    onGeofenceUpdated={handleGeofenceUpdated}
+                    onGeofenceDeleted={handleGeofenceDeleted}
+                  />
+                )}
+              </div>
+
+              {/* Geofence Visualization */}
+              <div className="lg:col-span-2">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <Shield className="w-5 h-5 mr-2 text-blue-600" />
+                      Safe Zone Visualization
+                      {isLoadingGeofences && (
+                        <RefreshCw className="w-4 h-4 ml-2 animate-spin text-blue-600" />
+                      )}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <GPSMapWithGeofence 
+                      trackingData={trackingData} 
+                      geofences={geofences}
+                      height="500px" 
+                      showHistory={false}
+                      dogName={dogInfo?.name}
+                    />
+                  </CardContent>
+                </Card>
               </div>
             </div>
           </TabsContent>
