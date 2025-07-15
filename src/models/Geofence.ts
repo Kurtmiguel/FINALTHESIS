@@ -41,19 +41,13 @@ const GeofenceSchema = new mongoose.Schema({
     type: Number,
     required: true,
     min: 1,
-    max: 1000, // Maximum 1km radius
+    max: 18, // 60 feet standard
     validate: {
       validator: function(v: number) {
-        // Ensure radius matches geofence type standards
-        const geofenceType = (this as any).geofenceType;
-        if (geofenceType === 'indoor') {
-          return v <= 45; // Max 45 meters for indoor
-        } else if (geofenceType === 'outdoor') {
-          return v <= 90; // Max 90 meters for outdoor
-        }
-        return true;
+        // 60 feet standard for all geofence types
+        return v <= 18;
       },
-      message: 'Radius exceeds maximum for geofence type'
+      message: 'Radius exceeds maximum of 18m (60 feet)'
     }
   },
   geofenceType: {
@@ -101,9 +95,9 @@ GeofenceSchema.index({ deviceId: 1, isActive: 1 });
 GeofenceSchema.index({ owner: 1, isActive: 1 });
 GeofenceSchema.index({ dogId: 1, isActive: 1 });
 
-// Static method to get default radius based on type
+// Static method to get default radius (60 feet standard)
 GeofenceSchema.statics.getDefaultRadius = function(type: 'indoor' | 'outdoor') {
-  return type === 'indoor' ? 45 : 90; // meters
+  return 18; // 60 feet = 18 meters
 };
 
 const Geofence: Model<IGeofence> = mongoose.models.Geofence || mongoose.model<IGeofence>('Geofence', GeofenceSchema);

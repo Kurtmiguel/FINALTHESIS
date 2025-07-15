@@ -61,11 +61,11 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
     const updateData = await req.json();
     
     // Validate radius if provided
-    if (updateData.radius && updateData.geofenceType) {
-      const maxRadius = updateData.geofenceType === 'indoor' ? 45 : 90;
+    if (updateData.radius) {
+      const maxRadius = 18; // 60 feet standard
       if (updateData.radius > maxRadius) {
         return NextResponse.json(
-          { error: `Radius cannot exceed ${maxRadius}m for ${updateData.geofenceType} geofences` },
+          { error: `Radius cannot exceed ${maxRadius}m (60 feet)` },
           { status: 400 }
         );
       }

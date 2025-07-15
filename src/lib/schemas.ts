@@ -41,7 +41,7 @@ export const geofenceSchema = z.object({
   name: z.string().min(1, "Geofence name is required").max(100),
   centerLatitude: z.number().min(-90).max(90),
   centerLongitude: z.number().min(-180).max(180),
-  radius: z.number().min(1).max(1000),
+  radius: z.number().min(1).max(18), // 60 feet standard
   geofenceType: z.enum(['indoor', 'outdoor']).default('outdoor'),
   isActive: z.boolean().default(true),
   deviceId: z.string().min(1, "Device ID is required"),
@@ -49,11 +49,10 @@ export const geofenceSchema = z.object({
   alertsEnabled: z.boolean().default(true),
   description: z.string().max(500).optional(),
 }).refine((data) => {
-  // Validate radius based on geofence type
-  const maxRadius = data.geofenceType === 'indoor' ? 45 : 90;
-  return data.radius <= maxRadius;
+  // Validate radius is within 60 feet standard
+  return data.radius <= 18;
 }, {
-  message: "Radius exceeds maximum for geofence type",
+  message: "Radius cannot exceed 18m (60 feet)",
   path: ["radius"],
 });
 

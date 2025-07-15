@@ -80,7 +80,7 @@ export default function GeofenceSetup({
   const [formData, setFormData] = useState({
     name: '',
     geofenceType: 'outdoor' as 'indoor' | 'outdoor',
-    radius: 90,
+    radius: 18, // Fixed 18m (60ft) radius
     alertsEnabled: true,
     description: ''
   })
@@ -88,12 +88,6 @@ export default function GeofenceSetup({
   useEffect(() => {
     fetchExistingGeofence()
   }, [deviceId])
-
-  useEffect(() => {
-    // Update default radius when geofence type changes
-    const defaultRadius = formData.geofenceType === 'indoor' ? 45 : 90
-    setFormData(prev => ({ ...prev, radius: defaultRadius }))
-  }, [formData.geofenceType])
 
   const fetchExistingGeofence = async () => {
     try {
@@ -426,13 +420,13 @@ export default function GeofenceSetup({
                   <SelectItem value="indoor">
                     <div className="flex items-center space-x-2">
                       <Home className="w-4 h-4" />
-                      <span>Indoor (Max 45m)</span>
+                      <span>Indoor (18m/60ft)</span>
                     </div>
                   </SelectItem>
                   <SelectItem value="outdoor">
                     <div className="flex items-center space-x-2">
                       <Building2 className="w-4 h-4" />
-                      <span>Outdoor (Max 90m)</span>
+                      <span>Outdoor (18m/60ft)</span>
                     </div>
                   </SelectItem>
                 </SelectContent>
@@ -447,11 +441,11 @@ export default function GeofenceSetup({
                 value={formData.radius}
                 onChange={(e) => setFormData(prev => ({ ...prev, radius: parseInt(e.target.value) || 0 }))}
                 min={1}
-                max={formData.geofenceType === 'indoor' ? 45 : 90}
+                max={18}
                 disabled={isSaving}
               />
               <p className="text-xs text-gray-500 mt-1">
-                Based on standard WiFi range: {formData.geofenceType === 'indoor' ? '120ft (45m)' : '300ft (90m)'}
+                Fixed radius: 60ft (18m) for optimal range
               </p>
             </div>
 

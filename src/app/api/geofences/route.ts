@@ -116,11 +116,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Validate radius based on geofence type
-    const maxRadius = geofenceType === 'indoor' ? 45 : 90;
+    // Validate radius based on 60 feet standard
+    const maxRadius = 18; // 60 feet
     if (radius > maxRadius) {
       return NextResponse.json(
-        { error: `Radius cannot exceed ${maxRadius}m for ${geofenceType} geofences` },
+        { error: `Radius cannot exceed ${maxRadius}m (60 feet)` },
         { status: 400 }
       );
     }

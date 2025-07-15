@@ -1,229 +1,253 @@
-// app/types/geofencing.ts
+// app/types/geofencing.ts - Unified Types for Consistency
+import { Types } from 'mongoose'
+
+// Base interfaces for data consistency
 export interface GeofenceData {
-  _id: string
-  name: string
-  centerLatitude: number
-  centerLongitude: number
-  radius: number
-  geofenceType: 'indoor' | 'outdoor'
-  isActive: boolean
-  deviceId: string
-  dogId: string
-  dogName?: string
-  dogBreed?: string
-  owner: string
-  alertsEnabled: boolean
-  description?: string
-  createdAt: string
-  updatedAt: string
+  _id: string;
+  name: string;
+  centerLatitude: number;
+  centerLongitude: number;
+  radius: number;
+  geofenceType: 'indoor' | 'outdoor';
+  isActive: boolean;
+  deviceId: string;
+  dogId: string;
+  dogName: string;
+  dogBreed?: string;
+  owner: string;
+  alertsEnabled: boolean;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface AlertData {
-  _id: string
-  alertType: 'geofence_exit' | 'geofence_entry' | 'battery_low' | 'device_offline'
-  title: string
-  message: string
-  severity: 'low' | 'medium' | 'high' | 'critical'
-  isRead: boolean
-  deviceId: string
-  dogId: string
-  dogName?: string
-  dogBreed?: string
-  dogImageUrl?: string
-  geofenceId?: string
-  geofenceName?: string
-  geofenceType?: string
-  owner: string
+  _id: string;
+  alertType: 'geofence_exit' | 'geofence_entry' | 'battery_low' | 'device_offline';
+  title: string;
+  message: string;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  isRead: boolean;
+  deviceId: string;
+  dogId: string;
+  dogName: string;
+  dogBreed: string;
+  dogImageUrl?: string;
+  geofenceId?: string;
+  geofenceName?: string;
+  geofenceType?: string;
+  owner: string;
   coordinates?: {
-    latitude: number
-    longitude: number
-  }
+    latitude: number;
+    longitude: number;
+  };
   metadata?: {
-    batteryLevel?: number
-    distance?: number
-    previousStatus?: string
-    duration?: number
-  }
-  createdAt: string
-  readAt?: string
-  resolvedAt?: string
-  isResolved: boolean
+    batteryLevel?: number;
+    distance?: number;
+    previousStatus?: string;
+    duration?: number;
+  };
+  createdAt: string;
+  readAt?: string;
+  resolvedAt?: string;
+  isResolved: boolean;
 }
 
-export interface GeofenceViolation {
-  deviceId: string
-  dogId: string
-  geofenceId: string
-  violationType: 'exit' | 'entry'
-  coordinates: {
-    latitude: number
-    longitude: number
-  }
-  distance: number // distance from geofence center
-  timestamp: string
-  severity: 'low' | 'medium' | 'high' | 'critical'
-  alertCreated: boolean
+// Database interfaces (for internal use)
+export interface IGeofenceDatabase {
+  _id: Types.ObjectId;
+  name: string;
+  centerLatitude: number;
+  centerLongitude: number;
+  radius: number;
+  geofenceType: 'indoor' | 'outdoor';
+  isActive: boolean;
+  deviceId: string;
+  dogId: Types.ObjectId;
+  owner: Types.ObjectId;
+  alertsEnabled: boolean;
+  description?: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-export interface GeofenceStatus {
-  geofenceId: string
-  name: string
-  isActive: boolean
-  dogInside: boolean
-  lastChecked: string
-  violations: number
-  alertsEnabled: boolean
-  centerCoordinates: {
-    latitude: number
-    longitude: number
-  }
-  radius: number
-  geofenceType: 'indoor' | 'outdoor'
+export interface IAlertDatabase {
+  _id: Types.ObjectId;
+  alertType: 'geofence_exit' | 'geofence_entry' | 'battery_low' | 'device_offline';
+  title: string;
+  message: string;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  isRead: boolean;
+  deviceId: string;
+  dogId: Types.ObjectId;
+  geofenceId?: Types.ObjectId;
+  owner: Types.ObjectId;
+  coordinates?: {
+    latitude: number;
+    longitude: number;
+  };
+  metadata?: {
+    batteryLevel?: number;
+    distance?: number;
+    previousStatus?: string;
+    duration?: number;
+  };
+  createdAt: Date;
+  readAt?: Date;
+  resolvedAt?: Date;
+  isResolved: boolean;
 }
 
-export interface NotificationPreferences {
-  geofenceAlerts: boolean
-  batteryAlerts: boolean
-  deviceOfflineAlerts: boolean
-  emailNotifications: boolean
-  smsNotifications: boolean
-  pushNotifications: boolean
-}
-
-export interface AlertsResponse {
-  alerts: AlertData[]
-  pagination: {
-    currentPage: number
-    totalPages: number
-    totalCount: number
-    unreadCount: number
-    hasMore: boolean
-  }
-}
-
-export interface GeofencesResponse {
-  geofences: GeofenceData[]
-  pagination?: {
-    currentPage: number
-    totalPages: number
-    totalCount: number
-    hasMore: boolean
-  }
-}
-
-// Form data types
+// API Request/Response types
 export interface CreateGeofenceRequest {
-  name: string
-  centerLatitude: number
-  centerLongitude: number
-  radius: number
-  geofenceType: 'indoor' | 'outdoor'
-  deviceId: string
-  dogId: string
-  alertsEnabled?: boolean
-  description?: string
+  name: string;
+  centerLatitude: number;
+  centerLongitude: number;
+  radius: number;
+  geofenceType: 'indoor' | 'outdoor';
+  deviceId: string;
+  dogId: string;
+  alertsEnabled?: boolean;
+  description?: string;
 }
 
 export interface UpdateGeofenceRequest {
-  name?: string
-  radius?: number
-  geofenceType?: 'indoor' | 'outdoor'
-  isActive?: boolean
-  alertsEnabled?: boolean
-  description?: string
+  name?: string;
+  radius?: number;
+  geofenceType?: 'indoor' | 'outdoor';
+  isActive?: boolean;
+  alertsEnabled?: boolean;
+  description?: string;
 }
 
 export interface UpdateAlertRequest {
-  isRead?: boolean
-  isResolved?: boolean
+  isRead?: boolean;
+  isResolved?: boolean;
 }
 
 export interface BulkUpdateAlertsRequest {
-  alertIds: string[]
-  markAsRead?: boolean
-  markAsResolved?: boolean
+  alertIds: string[];
+  markAsRead?: boolean;
+  markAsResolved?: boolean;
 }
 
-// Geofence calculation utilities
+export interface AlertsResponse {
+  alerts: AlertData[];
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    totalCount: number;
+    unreadCount: number;
+    hasMore: boolean;
+  };
+}
+
+export interface GeofencesResponse {
+  geofences: GeofenceData[];
+  pagination?: {
+    currentPage: number;
+    totalPages: number;
+    totalCount: number;
+    hasMore: boolean;
+  };
+}
+
+// Component Props Types
+export interface GeofenceSetupProps {
+  dogId: string;
+  dogName: string;
+  deviceId: string;
+  trackingData?: {
+    latitude: number;
+    longitude: number;
+    gpsValid: boolean;
+  };
+  onGeofenceCreated: (geofence: GeofenceData) => void;
+  onGeofenceUpdated: (geofence: GeofenceData) => void;
+  onGeofenceDeleted: (geofenceId: string) => void;
+}
+
+export interface NotificationCenterProps {
+  dogId?: string;
+  deviceId?: string;
+  refreshInterval?: number;
+}
+
+export interface GPSMapWithGeofenceProps {
+  trackingData?: {
+    latitude: number;
+    longitude: number;
+    gpsValid: boolean;
+    battery: number;
+    timestamp: string;
+  };
+  historicalData?: Array<{
+    latitude: number;
+    longitude: number;
+    timestamp: string;
+    createdAt: string;
+    battery: number;
+  }>;
+  geofences?: GeofenceData[];
+  height?: string;
+  showHistory?: boolean;
+  groupedByDate?: { [date: string]: any[] };
+  dogName?: string;
+}
+
+// Utility types
 export interface GPSCoordinates {
-  latitude: number
-  longitude: number
+  latitude: number;
+  longitude: number;
 }
 
 export interface DistanceCalculationResult {
-  distance: number // in meters
-  isWithinRadius: boolean
-  bearingFromCenter: number // in degrees
+  distance: number; // in meters
+  isWithinRadius: boolean;
+  bearingFromCenter: number; // in degrees
 }
 
 export interface GeofenceCheckResult {
-  deviceId: string
-  geofenceId: string
-  isInside: boolean
-  distance: number
-  previousState?: boolean
-  stateChanged: boolean
-  violation?: GeofenceViolation
+  deviceId: string;
+  geofenceId: string;
+  isInside: boolean;
+  distance: number;
+  previousState?: boolean;
+  stateChanged: boolean;
+  violation?: GeofenceViolation;
 }
 
-// Real-time monitoring types
-export interface GeofenceMonitoringConfig {
-  checkInterval: number // milliseconds
-  alertCooldown: number // milliseconds
-  maxViolationsPerHour: number
-  enableSmsAlerts: boolean
-  enableEmailAlerts: boolean
-  enablePushNotifications: boolean
+export interface GeofenceViolation {
+  deviceId: string;
+  dogId: string;
+  geofenceId: string;
+  violationType: 'exit' | 'entry';
+  coordinates: GPSCoordinates;
+  distance: number;
+  timestamp: string;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  alertCreated: boolean;
 }
 
-export interface GeofenceEvent {
-  eventId: string
-  eventType: 'entry' | 'exit' | 'violation' | 'return'
-  deviceId: string
-  dogId: string
-  geofenceId: string
-  timestamp: string
-  coordinates: GPSCoordinates
-  metadata: {
-    distance: number
-    duration?: number
-    previousCoordinates?: GPSCoordinates
-    alertSent: boolean
-  }
-}
+// Constants
+export const GEOFENCE_DEFAULTS = {
+  MAX_RADIUS: 18, // meters (60ft)
+  DEFAULT_RADIUS: 18, // meters (60ft)
+  CHECK_INTERVAL: 5000, // milliseconds
+  ALERT_COOLDOWN: 300000, // milliseconds (5 minutes)
+  MAX_VIOLATIONS_PER_HOUR: 10
+} as const;
 
-// Statistics and analytics types
-export interface GeofenceAnalytics {
-  geofenceId: string
-  totalViolations: number
-  averageTimeOutside: number // minutes
-  longestTimeOutside: number // minutes
-  mostCommonExitTime: string // hour of day
-  violationsByDay: { [date: string]: number }
-  violationsByHour: { [hour: string]: number }
-  batteryCorrelation: {
-    lowBatteryViolations: number
-    averageBatteryAtViolation: number
-  }
-}
+export const ALERT_SEVERITIES = {
+  LOW: 'low',
+  MEDIUM: 'medium', 
+  HIGH: 'high',
+  CRITICAL: 'critical'
+} as const;
 
-export interface DogActivitySummary {
-  dogId: string
-  dogName: string
-  totalTimeTracked: number // minutes
-  timeInsideGeofence: number // minutes
-  timeOutsideGeofence: number // minutes
-  violationsCount: number
-  averageBatteryLevel: number
-  mostActiveHours: string[]
-  safeZoneCompliance: number // percentage
-}
-
-// WebSocket types for real-time updates
-export interface RealtimeGeofenceUpdate {
-  type: 'geofence_status' | 'new_alert' | 'violation_resolved' | 'battery_update'
-  dogId: string
-  deviceId: string
-  data: any
-  timestamp: string
-}
+export const ALERT_TYPES = {
+  GEOFENCE_EXIT: 'geofence_exit',
+  GEOFENCE_ENTRY: 'geofence_entry',
+  BATTERY_LOW: 'battery_low',
+  DEVICE_OFFLINE: 'device_offline'
+} as const;
