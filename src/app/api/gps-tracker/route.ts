@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import dbConnect from '@/lib/db'
 import TrackingData from '@/models/TrackingData'
 import Device from '@/models/Device'
+import '@/models/Users' 
 import Geofence from '@/models/Geofence'
 import Alert from '@/models/Alert'
 import Dog from '@/models/Dog'
@@ -132,11 +133,14 @@ async function checkGeofenceViolations(
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('📡 [GPS-API] Received GPS data from device');
+    
     // Verify API key
     const headersList = await headers()
     const apiKey = headersList.get('x-api-key')
     
     if (apiKey !== process.env.GPS_API_KEY) {
+      console.log('❌ [GPS-API] Unauthorized access attempt with invalid API key');
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
@@ -144,11 +148,20 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
+    console.log('📋 [GPS-API] Request body:', {
+      deviceId: body.deviceId,
+      latitude: body.latitude,
+      longitude: body.longitude,
+      gpsValid: body.gpsValid,
+      battery: body.battery,
+      timestamp: body.timestamp
+    });
     
     // Validate required fields
     const requiredFields = ['deviceId', 'latitude', 'longitude', 'gpsValid', 'battery', 'timestamp']
     for (const field of requiredFields) {
       if (!(field in body)) {
+        console.log(`❌ [GPS-API] Missing required field: ${field}`);
         return NextResponse.json(
           { error: `Missing required field: ${field}` },
           { status: 400 }
@@ -158,19 +171,30 @@ export async function POST(request: NextRequest) {
 
     // Connect to database
     await dbConnect()
+    console.log('✅ [GPS-API] Database connected');
 
     // Find the device and validate it exists and is active
+    console.log(`🔍 [GPS-API] Looking for device: ${body.deviceId}`);
+    
     const device = await Device.findOne({ 
       deviceId: body.deviceId,
       isActive: true 
-    }).populate('owner')
+    }).populate('owner', 'email fullName') // This works because User schema is registered above
 
     if (!device) {
+      console.log(`❌ [GPS-API] Device not found or inactive: ${body.deviceId}`);
       return NextResponse.json(
         { error: 'Device not found or inactive' },
         { status: 404 }
       )
     }
+
+    console.log('✅ [GPS-API] Device found:', {
+      deviceId: device.deviceId,
+      deviceName: device.name,
+      owner: device.owner ? (device.owner as any).email : 'Unknown',
+      isActive: device.isActive
+    });
 
     // Create tracking data document
     const trackingData = new TrackingData({
@@ -186,9 +210,12 @@ export async function POST(request: NextRequest) {
     })
 
     // Save tracking data
+    console.log('💾 [GPS-API] Saving tracking data to database');
     const result = await trackingData.save()
+    console.log('✅ [GPS-API] Tracking data saved with ID:', result._id);
 
     // Update device's last seen and battery level
+    console.log('🔄 [GPS-API] Updating device last seen and battery level');
     await Device.findByIdAndUpdate(device._id, {
       lastSeen: new Date(),
       batteryLevel: parseInt(body.battery)
@@ -238,13 +265,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Log successful data reception with geofence status
-    console.log(`📡 GPS data processed for ${body.deviceId}:`, {
+    console.log(`✅ [GPS-API] GPS data processed successfully for ${body.deviceId}:`, {
       coordinates: `${body.latitude}, ${body.longitude}`,
       gpsValid: body.gpsValid,
       battery: `${body.battery}%`,
       timestamp: body.timestamp,
       geofenceChecked: body.gpsValid,
-      owner: device.owner
+      owner: device.owner ? (device.owner as any).email : 'Unknown'
     })
 
     return NextResponse.json(
@@ -252,25 +279,62 @@ export async function POST(request: NextRequest) {
         success: true, 
         message: 'GPS data saved and geofences checked successfully',
         id: result._id,
-        deviceOwner: device.owner,
+        deviceId: body.deviceId,
+        timestamp: new Date().toISOString(),
         geofenceChecked: body.gpsValid
       },
       { status: 200 }
     )
 
   } catch (error) {
-    console.error('❌ Error processing GPS data:', error)
+    console.error('❌ [GPS-API] Error processing GPS data:', error)
+    
+    // Handle specific error types
+    if (error instanceof Error) {
+      if (error.message.includes('MissingSchemaError')) {
+        console.error('❌ [GPS-API] Schema registration error - ensure all models are properly imported');
+      } else if (error.message.includes('validation')) {
+        console.error('❌ [GPS-API] Data validation error:', error.message);
+        return NextResponse.json(
+          { error: 'Invalid data format', details: error.message },
+          { status: 400 }
+        )
+      }
+    }
+    
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { 
+        error: 'Internal server error',
+        message: 'Failed to process GPS data',
+        timestamp: new Date().toISOString()
+      },
       { status: 500 }
     )
   }
 }
 
 export async function GET() {
-  return NextResponse.json({ 
-    message: 'GPS Tracker API endpoint with Geofencing - Main System',
-    status: 'active',
-    features: ['gps_tracking', 'geofencing', 'battery_monitoring', 'alerts']
-  })
+  try {
+    // Connect to database to test connection
+    await dbConnect()
+    
+    return NextResponse.json({ 
+      message: 'GPS Tracker API endpoint with Geofencing - Main System',
+      status: 'active',
+      timestamp: new Date().toISOString(),
+      features: ['gps_tracking', 'geofencing', 'battery_monitoring', 'alerts'],
+      endpoints: {
+        POST: 'Receive GPS data from devices with geofencing',
+        GET: 'Health check'
+      }
+    })
+  } catch (error) {
+    console.error('❌ [GPS-API] Health check failed:', error);
+    return NextResponse.json({
+      message: 'GPS Tracker API endpoint - Main System', 
+      status: 'error',
+      error: 'Database connection failed',
+      timestamp: new Date().toISOString()
+    }, { status: 500 })
+  }
 }

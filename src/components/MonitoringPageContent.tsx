@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Loader2 } from 'lucide-react';
+import { PlusCircle, Loader2, Bug } from 'lucide-react';
 import DogProfileDialog from '@/components/DogProfileDialog';
 import DogProfileEditDialog from '@/components/DogProfileEditDialog';
 import DogProfileCard from '@/components/DogProfileCard';
@@ -17,6 +17,8 @@ const MonitoringPageContent: React.FC = () => {
   const [editingDog, setEditingDog] = useState<DogData | null>(null);
   const [dogProfiles, setDogProfiles] = useState<DogData[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [showDebugInfo, setShowDebugInfo] = useState<boolean>(false);
+  const [debugInfo, setDebugInfo] = useState<any>(null);
   const { data: session, status } = useSession();
   const router = useRouter();
 
@@ -30,7 +32,11 @@ const MonitoringPageContent: React.FC = () => {
 
   const fetchDogProfiles = async () => {
     try {
+      console.log('🔍 [Dashboard] Fetching dog profiles...');
       const response = await fetch('/api/dogs');
+      
+      console.log('📡 [Dashboard] Dog profiles response status:', response.status);
+      
       if (!response.ok) {
         if (response.status === 401) {
           throw new Error('Unauthorized. Please log in.');
@@ -38,18 +44,27 @@ const MonitoringPageContent: React.FC = () => {
         throw new Error('Failed to fetch dog profiles');
       }
       const data: DogData[] = await response.json();
-      console.log('Fetched dog profiles:', data);
+      console.log('✅ [Dashboard] Fetched dog profiles:', data);
       setDogProfiles(data);
       setError(null);
+      
+      // Update debug info
+      setDebugInfo({
+        profileCount: data.length,
+        profilesWithDevices: data.filter(dog => dog.deviceInfo).length,
+        lastFetch: new Date().toISOString()
+      });
     } catch (error) {
-      console.error('Error fetching dog profiles:', error);
+      console.error('❌ [Dashboard] Error fetching dog profiles:', error);
       setError(error instanceof Error ? error.message : 'An error occurred');
     }
   };
 
   const handleProfileCreation = async (newProfile: NewDogData) => {
     try {
-      console.log('Creating new dog profile:', newProfile);
+      console.log('🐕 [Dashboard] Creating new dog profile:', newProfile);
+      setError(null);
+      
       const response = await fetch('/api/dogs', {
         method: 'POST',
         headers: {
@@ -58,21 +73,40 @@ const MonitoringPageContent: React.FC = () => {
         body: JSON.stringify(newProfile),
       });
 
+      console.log('📡 [Dashboard] Dog creation response status:', response.status);
+
       if (!response.ok) {
+        const errorData = await response.json();
+        console.error('❌ [Dashboard] Dog creation failed:', errorData);
+        
         if (response.status === 401) {
           throw new Error('Unauthorized. Please log in.');
+        } else if (response.status === 400) {
+          // Handle specific device-related errors
+          if (errorData.error?.includes('Device not found')) {
+            throw new Error('Device registration failed: ' + errorData.error + ' Please register the device first or contact support.');
+          } else {
+            throw new Error(errorData.error || 'Failed to create dog profile');
+          }
+        } else {
+          throw new Error('Failed to create dog profile');
         }
-        throw new Error('Failed to create dog profile');
       }
 
       const createdProfile: DogData = await response.json();
-      console.log('Created dog profile:', createdProfile);
+      console.log('✅ [Dashboard] Created dog profile:', createdProfile);
       
       setDogProfiles(prevProfiles => [...prevProfiles, createdProfile]);
       setIsCreateDialogOpen(false);
       setError(null);
+      
+      // Refresh the list to get updated device info
+      setTimeout(() => {
+        fetchDogProfiles();
+      }, 1000);
+      
     } catch (error) {
-      console.error('Error creating dog profile:', error);
+      console.error('❌ [Dashboard] Error creating dog profile:', error);
       setError(error instanceof Error ? error.message : 'An error occurred');
     }
   };
@@ -87,7 +121,7 @@ const MonitoringPageContent: React.FC = () => {
 
   const handleProfileUpdate = async (id: string, updatedProfile: UpdateDogData) => {
     try {
-      console.log('Updating dog profile:', id, updatedProfile);
+      console.log('🔄 [Dashboard] Updating dog profile:', id, updatedProfile);
       const response = await fetch(`/api/dogs/${id}`, {
         method: 'PUT',
         headers: {
@@ -104,7 +138,7 @@ const MonitoringPageContent: React.FC = () => {
       }
 
       const updatedDog: DogData = await response.json();
-      console.log('Updated dog profile:', updatedDog);
+      console.log('✅ [Dashboard] Updated dog profile:', updatedDog);
       
       setDogProfiles(prevProfiles => 
         prevProfiles.map(dog => dog._id === id ? updatedDog : dog)
@@ -113,14 +147,14 @@ const MonitoringPageContent: React.FC = () => {
       setEditingDog(null);
       setError(null);
     } catch (error) {
-      console.error('Error updating dog profile:', error);
+      console.error('❌ [Dashboard] Error updating dog profile:', error);
       setError(error instanceof Error ? error.message : 'An error occurred while updating the profile');
     }
   };
 
   const handleDeleteProfile = async (id: string) => {
     try {
-      console.log('Deleting dog profile:', id);
+      console.log('🗑️ [Dashboard] Deleting dog profile:', id);
       const response = await fetch(`/api/dogs/${id}`, {
         method: 'DELETE',
       });
@@ -133,15 +167,19 @@ const MonitoringPageContent: React.FC = () => {
       }
 
       const data = await response.json();
-      console.log(data.message); // Log the success message
+      console.log('✅ [Dashboard] Delete response:', data.message);
 
       // If the delete was successful, update the UI immediately
       setDogProfiles(prevProfiles => prevProfiles.filter(dog => dog._id !== id));
       setError(null);
     } catch (error) {
-      console.error('Error deleting dog profile:', error);
+      console.error('❌ [Dashboard] Error deleting dog profile:', error);
       setError(error instanceof Error ? error.message : 'An error occurred while deleting the profile');
     }
+  };
+
+  const toggleDebugInfo = () => {
+    setShowDebugInfo(!showDebugInfo);
   };
 
   if (status === 'loading') {
@@ -160,16 +198,47 @@ const MonitoringPageContent: React.FC = () => {
     <div className="bg-gray-50 min-h-screen">
       <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Dog Monitoring Dashboard</h1>
-          <p className="mt-2 text-sm text-gray-600">Manage and monitor your dog profiles</p>
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Dog Monitoring Dashboard</h1>
+              <p className="mt-2 text-sm text-gray-600">Manage and monitor your dog profiles</p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={toggleDebugInfo}
+              className="flex items-center space-x-2"
+            >
+              <Bug className="w-4 h-4" />
+              <span>Debug</span>
+            </Button>
+          </div>
         </div>
+
+        {/* Debug Information */}
+        {showDebugInfo && debugInfo && (
+          <div className="mb-6 bg-gray-900 text-green-400 rounded-lg p-4 font-mono text-sm">
+            <h3 className="text-white font-bold mb-3">🔍 Debug Information</h3>
+            <div className="space-y-1">
+              <div><strong>Total Profiles:</strong> {debugInfo.profileCount}</div>
+              <div><strong>Profiles with Devices:</strong> {debugInfo.profilesWithDevices}</div>
+              <div><strong>Last Fetch:</strong> {debugInfo.lastFetch}</div>
+              <div><strong>Session Status:</strong> {status}</div>
+              <div><strong>User Email:</strong> {session?.user?.email}</div>
+            </div>
+          </div>
+        )}
 
         <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
           <div className="p-6 border-b border-gray-200">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-semibold text-gray-800">Dog Profiles</h2>
               <Button 
-                onClick={() => setIsCreateDialogOpen(true)}
+                onClick={() => {
+                  console.log('➕ [Dashboard] Opening create dialog');
+                  setIsCreateDialogOpen(true);
+                  setError(null); // Clear any existing errors
+                }}
                 className="flex items-center space-x-2"
               >
                 <PlusCircle className="h-5 w-5" />
@@ -179,7 +248,18 @@ const MonitoringPageContent: React.FC = () => {
 
             {error && (
               <Alert variant="destructive" className="mb-6">
-                <AlertDescription>{error}</AlertDescription>
+                <AlertDescription>
+                  <strong>Error:</strong> {error}
+                  <br />
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setError(null)}
+                    className="mt-2"
+                  >
+                    Dismiss
+                  </Button>
+                </AlertDescription>
               </Alert>
             )}
 
@@ -200,7 +280,11 @@ const MonitoringPageContent: React.FC = () => {
                 <h3 className="mt-2 text-sm font-medium text-gray-900">No dog profiles</h3>
                 <p className="mt-1 text-sm text-gray-500">Get started by creating a new dog profile.</p>
                 <div className="mt-6">
-                  <Button onClick={() => setIsCreateDialogOpen(true)}>
+                  <Button onClick={() => {
+                    console.log('➕ [Dashboard] Opening create dialog from empty state');
+                    setIsCreateDialogOpen(true);
+                    setError(null);
+                  }}>
                     <PlusCircle className="h-5 w-5 mr-2" />
                     Create Dog Profile
                   </Button>
@@ -212,7 +296,13 @@ const MonitoringPageContent: React.FC = () => {
 
         <DogProfileDialog 
           open={isCreateDialogOpen} 
-          onOpenChange={setIsCreateDialogOpen}
+          onOpenChange={(open) => {
+            console.log('📱 [Dashboard] Dialog open state changed:', open);
+            setIsCreateDialogOpen(open);
+            if (!open) {
+              setError(null); // Clear errors when closing
+            }
+          }}
           onProfileCreation={handleProfileCreation}
         />
         <DogProfileEditDialog

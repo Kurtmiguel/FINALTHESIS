@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Smartphone, Heart } from 'lucide-react';
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Smartphone, Heart, AlertTriangle, Loader2 } from 'lucide-react';
 import DogRegistrationForm from './DogRegistrationForm';
 import DeviceRegistrationForm from './DeviceRegistrationForm';
 import { NewDogData, NewDeviceData } from '@/lib/schemas';
@@ -25,6 +26,7 @@ const DogProfileDialog: React.FC<DogProfileDialogProps> = ({
   const [dogData, setDogData] = useState<NewDogData | null>(null);
   const [deviceData, setDeviceData] = useState<NewDeviceData | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleOpenChange = (newOpen: boolean) => {
     if (!newOpen) {
@@ -40,16 +42,19 @@ const DogProfileDialog: React.FC<DogProfileDialogProps> = ({
     setDogData(null);
     setDeviceData(null);
     setIsSubmitting(false);
+    setError(null);
   };
 
   const handleCollarChoice = (choice: boolean) => {
     setHasCollar(choice);
     setStep('dog-registration');
+    setError(null); // Clear any previous errors
   };
 
   const handleDogRegistration = (data: NewDogData) => {
     const dogWithCollar = { ...data, collarActivated: hasCollar ?? false };
     setDogData(dogWithCollar);
+    setError(null); // Clear any previous errors
     
     if (hasCollar) {
       setStep('device-registration');
@@ -61,6 +66,7 @@ const DogProfileDialog: React.FC<DogProfileDialogProps> = ({
 
   const handleDeviceRegistration = async (data: NewDeviceData) => {
     setDeviceData(data);
+    setError(null); // Clear any previous errors
     
     if (dogData) {
       // First register the device, then create the dog profile
@@ -70,11 +76,13 @@ const DogProfileDialog: React.FC<DogProfileDialogProps> = ({
 
   const submitProfile = async (profile: NewDogData) => {
     setIsSubmitting(true);
+    setError(null);
     try {
       await onProfileCreation(profile);
       handleOpenChange(false);
     } catch (error) {
       console.error('Error creating dog profile:', error);
+      setError(error instanceof Error ? error.message : 'Failed to create dog profile');
     } finally {
       setIsSubmitting(false);
     }
@@ -82,7 +90,11 @@ const DogProfileDialog: React.FC<DogProfileDialogProps> = ({
 
   const submitProfileWithDevice = async (profile: NewDogData, device: NewDeviceData) => {
     setIsSubmitting(true);
+    setError(null);
+    
     try {
+      console.log('🔧 Registering device:', device);
+      
       // First register the device
       const deviceResponse = await fetch('/api/devices', {
         method: 'POST',
@@ -92,12 +104,24 @@ const DogProfileDialog: React.FC<DogProfileDialogProps> = ({
         body: JSON.stringify(device),
       });
 
+      console.log('📡 Device registration response status:', deviceResponse.status);
+
       if (!deviceResponse.ok) {
         const errorData = await deviceResponse.json();
-        throw new Error(errorData.error || 'Failed to register device');
+        console.error('❌ Device registration failed:', errorData);
+        
+        // Handle specific error cases
+        if (deviceResponse.status === 400 && errorData.error?.includes('already exists')) {
+          throw new Error(`Device ID "${device.deviceId}" is already registered. Please use a different Device ID or contact support if this is your device.`);
+        } else if (deviceResponse.status === 401) {
+          throw new Error('Authentication failed. Please log in again.');
+        } else {
+          throw new Error(errorData.error || 'Failed to register device');
+        }
       }
 
       const createdDevice = await deviceResponse.json();
+      console.log('✅ Device registered successfully:', createdDevice);
       
       // Then create the dog profile with device reference
       const profileWithDevice: NewDogData = {
@@ -108,14 +132,27 @@ const DogProfileDialog: React.FC<DogProfileDialogProps> = ({
         }
       };
 
+      console.log('🐕 Creating dog profile with device:', profileWithDevice);
       await onProfileCreation(profileWithDevice);
+      
+      console.log('✅ Dog profile with device created successfully');
       handleOpenChange(false);
     } catch (error) {
-      console.error('Error creating profile with device:', error);
-      // You might want to show an error message to the user here
+      console.error('❌ Error creating profile with device:', error);
+      setError(error instanceof Error ? error.message : 'An unexpected error occurred');
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleBackToDeviceStep = () => {
+    setStep('device-registration');
+    setError(null);
+  };
+
+  const handleBackToDogStep = () => {
+    setStep('dog-registration');
+    setError(null);
   };
 
   const renderContent = () => {
@@ -164,20 +201,35 @@ const DogProfileDialog: React.FC<DogProfileDialogProps> = ({
 
       case 'dog-registration':
         return (
-          <DogRegistrationForm 
-            onSubmit={handleDogRegistration} 
-            initialData={{ collarActivated: hasCollar ?? false }}
-            isLoading={isSubmitting}
-          />
+          <div className="space-y-4">
+            <DogRegistrationForm 
+              onSubmit={handleDogRegistration} 
+              initialData={{ collarActivated: hasCollar ?? false }}
+              isLoading={isSubmitting}
+            />
+            <div className="flex space-x-3">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setStep('collar-choice')}
+                disabled={isSubmitting}
+                className="flex-1"
+              >
+                Back
+              </Button>
+            </div>
+          </div>
         );
 
       case 'device-registration':
         return (
-          <DeviceRegistrationForm
-            onSubmit={handleDeviceRegistration}
-            onBack={() => setStep('dog-registration')}
-            isLoading={isSubmitting}
-          />
+          <div className="space-y-4">
+            <DeviceRegistrationForm
+              onSubmit={handleDeviceRegistration}
+              onBack={handleBackToDogStep}
+              isLoading={isSubmitting}
+            />
+          </div>
         );
 
       default:
@@ -207,7 +259,58 @@ const DogProfileDialog: React.FC<DogProfileDialogProps> = ({
           </div>
         </div>
 
+        {/* Error Display */}
+        {error && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        {/* Loading State */}
+        {isSubmitting && (
+          <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center space-x-3">
+              <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+              <div>
+                <div className="font-medium text-blue-900">
+                  {step === 'device-registration' ? 'Registering device...' : 'Creating profile...'}
+                </div>
+                <div className="text-sm text-blue-700">
+                  Please wait while we process your request
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {renderContent()}
+
+        {/* Retry Button for Device Registration Errors */}
+        {error && step === 'device-registration' && (
+          <div className="mt-4 pt-4 border-t">
+            <div className="flex space-x-3">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={handleBackToDeviceStep}
+                disabled={isSubmitting}
+                className="flex-1"
+              >
+                Try Again
+              </Button>
+              <Button 
+                type="button" 
+                variant="secondary" 
+                onClick={handleBackToDogStep}
+                disabled={isSubmitting}
+                className="flex-1"
+              >
+                Back to Dog Info
+              </Button>
+            </div>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
