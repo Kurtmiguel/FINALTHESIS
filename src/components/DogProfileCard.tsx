@@ -4,8 +4,22 @@ import { useRouter } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Pencil, Trash2, MapPin, Smartphone, Battery } from 'lucide-react';
+import { 
+  Pencil, 
+  Trash2, 
+  MapPin, 
+  Smartphone, 
+  Battery, 
+  AlertTriangle, 
+  MoreVertical
+} from 'lucide-react';
 import { DogData } from '@/lib/schemas';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface DogProfileCardProps {
   profile: DogData;
@@ -13,35 +27,73 @@ interface DogProfileCardProps {
   onDelete: (id: string) => void;
 }
 
-const DogProfileCard: React.FC<DogProfileCardProps> = ({ profile, onEdit, onDelete }) => {
+// Define the valid Badge variants
+type BadgeVariant = "secondary" | "default" | "destructive" | "outline" | null | undefined;
+
+const DogProfileCard: React.FC<DogProfileCardProps> = ({ 
+  profile, 
+  onEdit, 
+  onDelete
+}) => {
   const router = useRouter();
 
   const handleTrackDog = () => {
+    // Check if device is still available
+    if (!profile.deviceInfo) {
+      alert('No device assigned to this dog. Please assign a smart collar device first.');
+      return;
+    }
+    
     // Navigate to the tracking page for this specific dog
     router.push(`/tracking/${profile._id}`);
+  };
+
+  const handleDeleteProfile = () => {
+    const deviceInfo = profile.deviceInfo;
+    let confirmMessage = `Are you sure you want to delete ${profile.name}'s profile?\n\n`;
+    
+    if (deviceInfo) {
+      confirmMessage += `This will also permanently remove the associated device "${deviceInfo.deviceId}" and all its data:\n`;
+      confirmMessage += `• Device registration\n`;
+      confirmMessage += `• All tracking data\n`;
+      confirmMessage += `• All geofences\n`;
+      confirmMessage += `• All alerts\n\n`;
+    }
+    
+    confirmMessage += `This action cannot be undone.`;
+    
+    const confirmed = window.confirm(confirmMessage);
+    if (confirmed) {
+      onDelete(profile._id);
+    }
   };
 
   const getCollarStatus = () => {
     if (!profile.collarActivated) {
       return {
-        variant: "secondary" as const,
+        variant: "secondary" as BadgeVariant,
         text: "No Smart Collar",
-        icon: null
+        icon: null,
+        isValid: false
       };
     }
 
     if (profile.deviceInfo) {
+      const isActive = profile.deviceInfo.isActive;
       return {
-        variant: "default" as const,
-        text: profile.deviceInfo.isActive ? "Smart Collar Active" : "Smart Collar Inactive",
-        icon: <Smartphone className="w-3 h-3 mr-1" />
+        variant: (isActive ? "default" : "destructive") as BadgeVariant,
+        text: isActive ? "Smart Collar Active" : "Smart Collar Inactive",
+        icon: <Smartphone className="w-3 h-3 mr-1" />,
+        isValid: isActive
       };
     }
 
+    // Device was deleted or not found
     return {
-      variant: "outline" as const,
-      text: "Collar Setup Pending",
-      icon: <Smartphone className="w-3 h-3 mr-1" />
+      variant: "destructive" as BadgeVariant,
+      text: "Device Missing",
+      icon: <AlertTriangle className="w-3 h-3 mr-1" />,
+      isValid: false
     };
   };
 
@@ -51,6 +103,30 @@ const DogProfileCard: React.FC<DogProfileCardProps> = ({ profile, onEdit, onDele
     <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-300">
       <CardContent className="p-6">
         <div className="flex flex-col items-center mb-4">
+          {/* Profile Header with Options Menu */}
+          <div className="w-full flex justify-end mb-2">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => onEdit(profile._id)}>
+                  <Pencil className="w-4 h-4 mr-2" />
+                  Edit Profile
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={handleDeleteProfile}
+                  className="text-red-600"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete Profile
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
           <div className="relative w-24 h-24 mb-4">
             <Image
               src={profile.imageUrl || '/placeholder-dog-image.jpg'}
@@ -69,7 +145,7 @@ const DogProfileCard: React.FC<DogProfileCardProps> = ({ profile, onEdit, onDele
           </Badge>
 
           {/* Device Info (if available) */}
-          {profile.deviceInfo && (
+          {profile.deviceInfo ? (
             <div className="mt-2 text-xs text-gray-500 text-center">
               <div className="flex items-center justify-center space-x-2">
                 <span>Device: {profile.deviceInfo.deviceId}</span>
@@ -88,6 +164,16 @@ const DogProfileCard: React.FC<DogProfileCardProps> = ({ profile, onEdit, onDele
                   Last seen: {new Date(profile.deviceInfo.lastSeen).toLocaleString()}
                 </div>
               )}
+            </div>
+          ) : profile.collarActivated && (
+            <div className="mt-2 text-xs text-red-600 text-center">
+              <div className="flex items-center justify-center space-x-1">
+                <AlertTriangle className="w-3 h-3" />
+                <span>Device not found or deleted</span>
+              </div>
+              <div className="mt-1">
+                Please assign a new device or disable collar tracking
+              </div>
             </div>
           )}
         </div>
@@ -113,28 +199,36 @@ const DogProfileCard: React.FC<DogProfileCardProps> = ({ profile, onEdit, onDele
         
         {/* Action Buttons */}
         <div className="space-y-2">
-          {/* Track Button (only show if collar is activated and device is assigned) */}
-          {profile.collarActivated && profile.deviceInfo && (
+          {/* Track Button (only show if collar is activated and device is valid) */}
+          {profile.collarActivated && (
             <Button 
-              className="w-full mb-2 bg-green-600 hover:bg-green-700" 
+              className={`w-full ${
+                collarStatus.isValid 
+                  ? 'bg-green-600 hover:bg-green-700' 
+                  : 'bg-gray-400 hover:bg-gray-500'
+              }`}
               onClick={handleTrackDog}
+              disabled={!collarStatus.isValid}
             >
               <MapPin className="w-4 h-4 mr-2" />
-              View Live Location
+              {collarStatus.isValid ? 'View Live Location' : 'Device Required'}
             </Button>
           )}
           
-          {/* Edit and Delete buttons */}
-          <div className="flex justify-between space-x-2">
-            <Button variant="outline" size="sm" onClick={() => onEdit(profile._id)} className="flex-1">
-              <Pencil className="w-4 h-4 mr-2" />
-              Edit
-            </Button>
-            <Button variant="destructive" size="sm" onClick={() => onDelete(profile._id)} className="flex-1">
-              <Trash2 className="w-4 h-4 mr-2" />
-              Delete
-            </Button>
-          </div>
+          {/* Device Assignment Warning */}
+          {profile.collarActivated && !collarStatus.isValid && (
+            <div className="p-2 bg-yellow-50 border border-yellow-200 rounded text-center">
+              <div className="flex items-center justify-center space-x-1 text-yellow-700">
+                <AlertTriangle className="w-4 h-4" />
+                <span className="text-xs">
+                  {profile.deviceInfo ? 'Device inactive' : 'No device assigned'}
+                </span>
+              </div>
+              <div className="text-xs text-yellow-600 mt-1">
+                Edit profile to assign a working device
+              </div>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

@@ -3,7 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, Loader2, Bug } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { PlusCircle, Loader2, Bug, Dog } from 'lucide-react';
 import DogProfileDialog from '@/components/DogProfileDialog';
 import DogProfileEditDialog from '@/components/DogProfileEditDialog';
 import DogProfileCard from '@/components/DogProfileCard';
@@ -12,6 +13,7 @@ import { useRouter } from 'next/navigation';
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const MonitoringPageContent: React.FC = () => {
+  const [activeTab, setActiveTab] = useState<'dogs'>('dogs');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState<boolean>(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState<boolean>(false);
   const [editingDog, setEditingDog] = useState<DogData | null>(null);
@@ -155,6 +157,27 @@ const MonitoringPageContent: React.FC = () => {
   const handleDeleteProfile = async (id: string) => {
     try {
       console.log('🗑️ [Dashboard] Deleting dog profile:', id);
+      
+      // Find the dog profile to check if it has an assigned device
+      const dogToDelete = dogProfiles.find(dog => dog._id === id);
+      
+      // If the dog has an assigned device, delete it first
+      if (dogToDelete?.assignedDevice) {
+        console.log('🔧 [Dashboard] Dog has assigned device, deleting device first:', dogToDelete.assignedDevice);
+        
+        const deviceResponse = await fetch(`/api/devices/${dogToDelete.assignedDevice}`, {
+          method: 'DELETE',
+        });
+        
+        if (deviceResponse.ok) {
+          const deviceResult = await deviceResponse.json();
+          console.log('✅ [Dashboard] Device deleted successfully:', deviceResult);
+        } else {
+          console.warn('⚠️ [Dashboard] Device deletion failed, but continuing with profile deletion');
+        }
+      }
+      
+      // Now delete the dog profile
       const response = await fetch(`/api/dogs/${id}`, {
         method: 'DELETE',
       });
@@ -167,11 +190,17 @@ const MonitoringPageContent: React.FC = () => {
       }
 
       const data = await response.json();
-      console.log('✅ [Dashboard] Delete response:', data.message);
+      console.log('✅ [Dashboard] Dog profile deleted successfully:', data.message);
 
       // If the delete was successful, update the UI immediately
       setDogProfiles(prevProfiles => prevProfiles.filter(dog => dog._id !== id));
       setError(null);
+      
+      // Show success message
+      const deviceMessage = dogToDelete?.deviceInfo ? 
+        ` and associated device "${dogToDelete.deviceInfo.deviceId}"` : '';
+      alert(`${dogToDelete?.name}'s profile${deviceMessage} has been deleted successfully.`);
+      
     } catch (error) {
       console.error('❌ [Dashboard] Error deleting dog profile:', error);
       setError(error instanceof Error ? error.message : 'An error occurred while deleting the profile');
@@ -200,8 +229,8 @@ const MonitoringPageContent: React.FC = () => {
         <div className="mb-8">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Dog Monitoring Dashboard</h1>
-              <p className="mt-2 text-sm text-gray-600">Manage and monitor your dog profiles</p>
+              <h1 className="text-3xl font-bold text-gray-900">Pet Monitoring Dashboard</h1>
+              <p className="mt-2 text-sm text-gray-600">Manage your pets and smart collar devices</p>
             </div>
             <Button
               variant="outline"
@@ -225,75 +254,91 @@ const MonitoringPageContent: React.FC = () => {
               <div><strong>Last Fetch:</strong> {debugInfo.lastFetch}</div>
               <div><strong>Session Status:</strong> {status}</div>
               <div><strong>User Email:</strong> {session?.user?.email}</div>
+              <div><strong>Active Tab:</strong> {activeTab}</div>
             </div>
           </div>
         )}
 
-        <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-          <div className="p-6 border-b border-gray-200">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-semibold text-gray-800">Dog Profiles</h2>
+        {/* Error Display */}
+        {error && (
+          <Alert variant="destructive" className="mb-6">
+            <AlertDescription>
+              <strong>Error:</strong> {error}
+              <br />
               <Button 
-                onClick={() => {
-                  console.log('➕ [Dashboard] Opening create dialog');
-                  setIsCreateDialogOpen(true);
-                  setError(null); // Clear any existing errors
-                }}
-                className="flex items-center space-x-2"
+                variant="outline" 
+                size="sm" 
+                onClick={() => setError(null)}
+                className="mt-2"
               >
-                <PlusCircle className="h-5 w-5" />
-                <span>Create Dog Profile</span>
+                Dismiss
               </Button>
-            </div>
+            </AlertDescription>
+          </Alert>
+        )}
 
-            {error && (
-              <Alert variant="destructive" className="mb-6">
-                <AlertDescription>
-                  <strong>Error:</strong> {error}
-                  <br />
+        {/* Main Content Tabs */}
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'dogs')}>
+          <TabsList className="grid w-full grid-cols-1 mb-6">
+            <TabsTrigger value="dogs" className="flex items-center space-x-2">
+              <Dog className="w-4 h-4" />
+              <span>Dog Profiles</span>
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Dogs Tab */}
+          <TabsContent value="dogs">
+            <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+              <div className="p-6 border-b border-gray-200">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-xl font-semibold text-gray-800">Dog Profiles</h2>
                   <Button 
-                    variant="outline" 
-                    size="sm" 
-                    onClick={() => setError(null)}
-                    className="mt-2"
+                    onClick={() => {
+                      console.log('➕ [Dashboard] Opening create dialog');
+                      setIsCreateDialogOpen(true);
+                      setError(null); // Clear any existing errors
+                    }}
+                    className="flex items-center space-x-2"
                   >
-                    Dismiss
-                  </Button>
-                </AlertDescription>
-              </Alert>
-            )}
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {dogProfiles.map((profile) => (
-                <DogProfileCard 
-                  key={profile._id} 
-                  profile={profile} 
-                  onEdit={handleEditProfile}
-                  onDelete={handleDeleteProfile}
-                />
-              ))}
-            </div>
-
-            {dogProfiles.length === 0 && !error && (
-              <div className="text-center py-12">
-                <PlusCircle className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-sm font-medium text-gray-900">No dog profiles</h3>
-                <p className="mt-1 text-sm text-gray-500">Get started by creating a new dog profile.</p>
-                <div className="mt-6">
-                  <Button onClick={() => {
-                    console.log('➕ [Dashboard] Opening create dialog from empty state');
-                    setIsCreateDialogOpen(true);
-                    setError(null);
-                  }}>
-                    <PlusCircle className="h-5 w-5 mr-2" />
-                    Create Dog Profile
+                    <PlusCircle className="h-5 w-5" />
+                    <span>Create Dog Profile</span>
                   </Button>
                 </div>
-              </div>
-            )}
-          </div>
-        </div>
 
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {dogProfiles.map((profile) => (
+                    <DogProfileCard 
+                      key={profile._id} 
+                      profile={profile} 
+                      onEdit={handleEditProfile}
+                      onDelete={handleDeleteProfile}
+                    />
+                  ))}
+                </div>
+
+                {dogProfiles.length === 0 && !error && (
+                  <div className="text-center py-12">
+                    <Dog className="mx-auto h-12 w-12 text-gray-400" />
+                    <h3 className="mt-2 text-sm font-medium text-gray-900">No dog profiles</h3>
+                    <p className="mt-1 text-sm text-gray-500">Get started by creating a new dog profile.</p>
+                    <div className="mt-6">
+                      <Button onClick={() => {
+                        console.log('➕ [Dashboard] Opening create dialog from empty state');
+                        setIsCreateDialogOpen(true);
+                        setError(null);
+                      }}>
+                        <PlusCircle className="h-5 w-5 mr-2" />
+                        Create Dog Profile
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
+
+        {/* Dialogs */}
         <DogProfileDialog 
           open={isCreateDialogOpen} 
           onOpenChange={(open) => {
